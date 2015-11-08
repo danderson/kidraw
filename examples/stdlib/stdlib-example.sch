@@ -1,0 +1,105 @@
+EESchema Schematic File Version 2
+LIBS:stdlib
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L Capacitor C1
+U 1 1 563E97D1
+P 3150 2200
+F 0 "C1" H 3150 2250 50  0000 C BNN
+F 1 "Capacitor" H 3150 2150 50  0001 C TNN
+F 2 "" H 3150 2200 50  0001 C CNN
+F 3 "" H 3150 2200 50  0001 C CNN
+	1    3150 2200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Capacitor_(Polarized) C2
+U 1 1 563E981A
+P 3450 2200
+F 0 "C2" H 3450 2250 50  0000 C BNN
+F 1 "Capacitor_(Polarized)" H 3450 2150 50  0001 C TNN
+F 2 "" H 3450 2200 50  0001 C CNN
+F 3 "" H 3450 2200 50  0001 C CNN
+	1    3450 2200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode D1
+U 1 1 563E984B
+P 2850 2450
+F 0 "D1" H 2850 2495 50  0000 C BNN
+F 1 "Diode" H 2850 2405 50  0001 C TNN
+F 2 "" H 2850 2450 50  0001 C CNN
+F 3 "" H 2850 2450 50  0001 C CNN
+	1    2850 2450
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode_(Schottky) D3
+U 1 1 563E9882
+P 3450 2450
+F 0 "D3" H 3450 2495 50  0000 C BNN
+F 1 "Diode_(Schottky)" H 3450 2405 50  0001 C TNN
+F 2 "" H 3450 2450 50  0001 C CNN
+F 3 "" H 3450 2450 50  0001 C CNN
+	1    3450 2450
+	1    0    0    -1  
+$EndComp
+$Comp
+L Diode_(Zener) D2
+U 1 1 563E98A7
+P 3150 2450
+F 0 "D2" H 3150 2495 50  0000 C BNN
+F 1 "Diode_(Zener)" H 3150 2405 50  0001 C TNN
+F 2 "" H 3150 2450 50  0001 C CNN
+F 3 "" H 3150 2450 50  0001 C CNN
+	1    3150 2450
+	1    0    0    -1  
+$EndComp
+$Comp
+L Inductor L1
+U 1 1 563E98C6
+P 3750 2200
+F 0 "L1" H 3750 2240 50  0000 C BNN
+F 1 "Inductor" H 3750 2180 50  0001 C TNN
+F 2 "" H 3750 2200 50  0001 C CNN
+F 3 "" H 3750 2200 50  0001 C CNN
+	1    3750 2200
+	1    0    0    -1  
+$EndComp
+$Comp
+L LED LED1
+U 1 1 563E9917
+P 3750 2450
+F 0 "LED1" H 3750 2519 50  0000 C BNN
+F 1 "LED" H 3750 2405 50  0001 C TNN
+F 2 "" H 3750 2450 50  0001 C CNN
+F 3 "" H 3750 2450 50  0001 C CNN
+	1    3750 2450
+	1    0    0    -1  
+$EndComp
+$Comp
+L Resistor R1
+U 1 1 563E99A1
+P 2850 2200
+F 0 "R1" H 2850 2239 50  0000 C BNN
+F 1 "Resistor" H 2850 2161 50  0001 C TNN
+F 2 "" H 2850 2200 50  0001 C CNN
+F 3 "" H 2850 2200 50  0001 C CNN
+	1    2850 2200
+	1    0    0    -1  
+$EndComp
+$EndSCHEMATC

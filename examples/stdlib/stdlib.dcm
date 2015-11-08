@@ -1,27 +1,63 @@
 EESchema-DOCLIB  Version 2.0
 #
-$CMP C
+$CMP Resistor
 D 
 $ENDCMP
-$CMP C
+$CMP Capacitor
 D 
 $ENDCMP
-$CMP C
+$CMP Capacitor_(Polarized)
 D 
 $ENDCMP
-$CMP C
+$CMP Inductor
 D 
 $ENDCMP
-$CMP C
+$CMP Diode
 D 
 $ENDCMP
-$CMP C
+$CMP Diode_(Zener)
 D 
 $ENDCMP
-$CMP C
+$CMP Diode_(Schottky)
 D 
 $ENDCMP
-$CMP C
+$CMP LED
 D 
+$ENDCMP
+$CMP VCC
+D 
+$ENDCMP
+$CMP +12V
+D 
+$ENDCMP
+$CMP GND
+D 
+$ENDCMP
+$CMP AGND
+D 
+$ENDCMP
+$CMP PWR_FLAG
+D 
+$ENDCMP
+$CMP BJT_(NPN)
+D 
+$ENDCMP
+$CMP BJT_(PNP)
+D 
+$ENDCMP
+$CMP JFET_(N-Channel)
+D 
+$ENDCMP
+$CMP JFET_(P-Channel)
+D 
+$ENDCMP
+$CMP MOSFET_(N-Channel)
+D 
+$ENDCMP
+$CMP MOSFET_(P-Channel)
+D 
+$ENDCMP
+$CMP TC1014
+D Microchip TC1014 linear regulator
 $ENDCMP
 #End Doc Library

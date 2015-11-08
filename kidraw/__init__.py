@@ -1,3 +1,4 @@
+import collections
 import contextlib
 import itertools
 import math
@@ -6,6 +7,13 @@ from . import devices
 from . import symbols
 
 DefaultWidth = 6
+
+class Align(object):
+    Center = 'C'
+    Left = 'L'
+    Right = 'R'
+    Top = 'T'
+    Bottom = 'B'
 
 class FillMode(object):
     Transparent = ''
@@ -57,8 +65,8 @@ class Library(object):
             '#End Doc Library'
         ])
 
-    def device(self, name, refdes, description='', show_name=True, show_pin_text=True, copy_from=None, pin_align=50):
-        d = Device(name, refdes, description=description, show_name=show_name, show_pin_text=show_pin_text, pin_align=pin_align)
+    def device(self, name, refdes, description='', show_name=True, show_pin_text=True, copy_from=None, pin_align=50, power=False, flip_labels=False):
+        d = Device(name, refdes, description=description, show_name=show_name, show_pin_text=show_pin_text, pin_align=pin_align, power=power, flip_labels=flip_labels)
         if copy_from is not None:
             d._copyfrom(copy_from)
         self._devices.append(d)
@@ -114,7 +122,7 @@ class Transform(object):
         self._xform = saved
 
 class Device(object):
-    def __init__(self, name, refdes, description='', show_name=True, show_pin_text=True, pin_align=50):
+    def __init__(self, name, refdes, description, show_name, show_pin_text, pin_align, power, flip_labels):
         self._name = name.replace(' ', '_')
         self._refdes = refdes
         self._description = description
@@ -124,16 +132,24 @@ class Device(object):
         self._assigned_pin_nums = set()
         self._parts = []
         self._pin_align = pin_align
+        self._power = power
+        self._flip_labels = flip_labels
         self.xform = Transform()
         self.symbols = symbols.Symbols(self)
 
     def _lib(self):
+        kind = 'P' if self._power else 'N'
         show_pins = 'Y' if self._show_pin_text else 'N'
         show_name = 'V' if self._show_name else 'I'
+        name_y = self._max_y+20 if self._flip_labels else self._min_y-20
+        name_align = Align.Bottom if self._flip_labels else Align.Top
+        show_refdes = 'I' if self._power else 'V'
+        refdes_y = self._min_y-20 if self._flip_labels else self._max_y+20
+        refdes_align = Align.Top if self._flip_labels else Align.Bottom
         return '\n'.join([
-            'DEF %s %s 0 0 %s %s 1 F N' % (self._name, self._refdes, show_pins, show_pins),
-            'F0 "%s" 0 %d 50 H V C BNN' % (self._refdes, self._max_y+20),
-            'F1 "%s" 0 %d 50 H %s C TNN' % (self._name, self._min_y-20, show_name),
+            'DEF %s %s 0 0 %s %s 1 F %s' % (self._name, self._refdes, show_pins, show_pins, kind),
+            'F0 "%s" 0 %d 50 H %s C %sNN' % (self._refdes, refdes_y, show_refdes, refdes_align),
+            'F1 "%s" 0 %d 50 H %s C %sNN' % (self._name, name_y, show_name, name_align),
             'F2 "" 0 0 50 H I C CNN',
             'F3 "" 0 0 50 H I C CNN',
             'DRAW',
@@ -144,7 +160,7 @@ class Device(object):
 
     def _doc(self):
         return '\n'.join([
-            '$CMP C',
+            '$CMP %s' % self._name,
             'D %s' % self._description,
             '$ENDCMP',
         ])
@@ -194,42 +210,142 @@ class Device(object):
             'A %d %d %d %d %d 0 1 %d %s %d %d %d %d' % (cx, cy, r, a1, a3, width, fillmode, x1, y1, x3, y3))
         
     def rectangle(self, topleft, bottomright, width=DefaultWidth, fillmode=FillMode.Transparent):
-        topleft, bottomright = self.xform._coords(*topleft), self.xform._coords(*bottomright)
-        self._min_y = min(self._min_y, topleft[1], bottomright[1])
-        self._max_y = max(self._max_y, topleft[1], bottomright[1])
-        self._parts.append(
-            'S %d %d %d %d 0 1 %d %s' % (topleft[0], topleft[1], bottomright[0], bottomright[1], width, fillmode))
+        (x1, y1), (x2, y2) = topleft, bottomright
+        # Use a polyline instead of a rectangle, because rectangles can't be rotated.
+        self.line((x1, y1), (x1, y2), (x2, y2), (x2, y1), (x1, y1), width=width, fillmode=fillmode)
+        # self._parts.append(
+        #     'S %d %d %d %d 0 1 %d %s' % (topleft[0], topleft[1], bottomright[0], bottomright[1], width, fillmode))
         
-    def circle(self, center, radius, width=DefaultWidth, fillmode=FillMode.Transparent):
-        x, y = self.xform._coords(*center)
+    def circle(self, x, y, radius, width=DefaultWidth, fillmode=FillMode.Transparent):
+        x, y = self.xform._coords(x, y)
         self._min_y = min(self._min_y, y-radius)
         self._max_y = max(self._max_y, y+radius)
         self._parts.append(
             'C %d %d %d 0 1 %d %s' % (x, y, radius, width, fillmode))
 
-    def pin(self, x, y, length=0, number=None, name='~', orientation=Orientation.Right, typ=Electrical.Passive, shape=Shape.Regular):
-        if length > 0:
-            if orientation == Orientation.Up:
-                self.line((x, y), (x, y+length))
-            elif orientation == Orientation.Down:
-                self.line((x, y), (x, y-length))
-            elif orientation == Orientation.Right:
-                self.line((x, y), (x+length, y))
-            elif orientation == Orientation.Left:
-                self.line((x, y), (x-length, y))
-
+    def text(self, x, y, text, angle=0.0, size=50, italic=False, bold=False, halign=Align.Center, valign=Align.Center):
         x, y = self.xform._coords(x, y)
-        if x%self._pin_align != 0:
-            raise ValueError('Pin X is not on the %dmil grid: %d' % (self._pin_align, x))
-        if y%self._pin_align != 0:
-            raise ValueError('Pin X is not on the %dmil grid: %d' % (self._pin_align, y))
+        italic = 'Italic' if italic else 'Normal'
+        bold = 1 if bold else 0
+        self._parts.append(
+            'T %d %d %d %d 0 0 1 "%s" %s %d %s %s' % (int(angle*10), x, y, size, text.replace('"', "'"), italic, bold, halign, valign))
+
+    def pin(self, x1, y1, length=0, number=None, name='~', orientation=Orientation.Right, typ=Electrical.Passive, shape=Shape.Regular, visible=True):
+        x2, y2 = x1, y1
+        if orientation == Orientation.Up:
+            y2 += length
+        elif orientation == Orientation.Down:
+            y2 -= length
+        elif orientation == Orientation.Right:
+            x2 += length
+        elif orientation == Orientation.Left:
+            x2 -= length
+
+        x1, y1 = self.xform._coords(x1, y1)
+        x2, y2 = self.xform._coords(x2, y2)
+        dx, dy = x2 - x1, y2 - y1
+        if dx != 0 and dy != 0:
+            raise ValueError('Pin must be vertical or horizontal in final drawing')
+
+        if dy > 0:
+            orientation = Orientation.Up
+        elif dy < 0:
+            orientation = Orientation.Down
+        elif dx > 0:
+            orientation = Orientation.Right
+        elif dx < 0:
+            orientation = Orientation.Left
+
+        self._min_y = min(self._min_y, y1, y2)
+        self._max_y = max(self._max_y, y1, y2)
+            
+        if x1%self._pin_align != 0:
+            raise ValueError('Pin X is not on the %dmil grid: %d' % (self._pin_align, x1))
+        if y1%self._pin_align != 0:
+            raise ValueError('Pin X is not on the %dmil grid: %d' % (self._pin_align, y1))
         if number is None:
             number = 1
             while number in self._assigned_pin_nums:
                 number += 1
             self._assigned_pin_nums.add(number)
+        if not visible:
+            shape = 'N'+shape
         self._parts.append(
-            'X %s %d %d %d 0 %s 50 50 0 1 %s %s' % (name, number, x, y, orientation, typ, shape))
+            'X %s %d %d %d %d %s 25 25 0 1 %s %s' % (name, number, x1, y1, length, orientation, typ, shape))
+
+    @contextlib.contextmanager
+    def build_ic(self, pin_grid=100, pin_length=150, edge_margin=50):
+        b = ICBuilder(self, pin_grid, pin_length, edge_margin)
+        yield b
+        b._build()
+
+class ICBuilder(object):
+    def __init__(self, device, pin_grid, pin_length, edge_margin):
+        self._d = device
+        self._pin_grid = pin_grid
+        self._pin_length = pin_length
+        self._edge_margin = edge_margin
+        self._pin_groups = collections.defaultdict(list) # Key: Orientation
+        self._current_group = None
+
+    def pin_group(self, orientation, gravity=Align.Center):
+        self._current_group = []
+        self._pin_groups[orientation].append(self._current_group)
+
+    def pin(self, number, name, typ=Electrical.Passive, shape=Shape.Regular):
+        self._current_group.append((number, name, typ, shape))
+
+    def _draw_pins(self, groups, orientation):
+        with self._d.xform.save():
+            for g in groups:
+                for number, name, typ, shape in g:
+                    self._d.pin(0, 0, length=self._pin_length, orientation=orientation, number=number, name=name, typ=typ, shape=shape)
+                    self._d.xform.translate(0, -self._pin_grid)
+                self._d.xform.translate(0, -self._pin_grid)
+
+    def _build(self):
+        slots_left = sum(len(l) for l in self._pin_groups[Orientation.Left]) + max(0, len(self._pin_groups[Orientation.Left])-1)
+        slots_right = sum(len(l)-1 for l in self._pin_groups[Orientation.Right]) + max(0, len(self._pin_groups[Orientation.Right])-1)
+        slots_top = sum(len(l)-1 for l in self._pin_groups[Orientation.Up]) + max(0, len(self._pin_groups[Orientation.Up])-1)
+        slots_bottom = sum(len(l)-1 for l in self._pin_groups[Orientation.Down]) + max(0, len(self._pin_groups[Orientation.Down])-1)
+
+        slots_horiz = max(slots_left, slots_right, 2)-1
+        slots_vert = max(slots_top, slots_bottom, 2)-1
+        
+        with self._d.xform.save():
+            # Position at the top-left pin.
+            self._d.xform.translate(-(slots_vert/2*self._pin_grid + self._edge_margin + self._pin_length),
+                                    (slots_horiz/2*self._pin_grid))
+            self._draw_pins(self._pin_groups[Orientation.Left], Orientation.Right)
+
+            # Top right
+            self._d.xform.translate(slots_vert*self._pin_grid + self._edge_margin*2 + self._pin_length*2, 0)
+            self._draw_pins(self._pin_groups[Orientation.Right], Orientation.Left)
+            # Rectangle top left
+            self._d.xform.translate(-(slots_vert*self._pin_grid + self._edge_margin*2 + self._pin_length), self._edge_margin)
+            self._d.rectangle((0, 0), (slots_vert*self._pin_grid + self._edge_margin*2, -(slots_horiz*self._pin_grid + self._edge_margin*2)))
+                    
+
+        # h = max(slots_left, slots_right, 2)*self._pin_grid/2 # mils
+        # l = max(slots_top, slots_bottom, 2)*self._pin_grid/2 # mils
+        # if h % self._edge_margin != 0:
+        #     h += self._edge_margin - (h%self._edge_margin)
+        # if l % self._edge_margin != 0:
+        #     l += self._edge_margin - (l%self._edge_margin)
+
+        # self._d.rectangle((-l, h), (l, -h))
+        # y = h-self._edge_margin
+        # for g in self._pin_groups[Orientation.Left]:
+        #     for number, name, typ, shape in g:
+        #         self._d.pin(-l-self._pin_length, y, length=self._pin_length, orientation=Orientation.Right, number=number, name=name, typ=typ, shape=shape)
+        #         y -= self._pin_grid
+        #     y -= self._pin_grid
+        # y = h - self._edge_margin
+        # for g in self._pin_groups[Orientation.Right]:
+        #     for number, name, typ, shape in g:
+        #         self._d.pin(l+self._pin_length, y, length=self._pin_length, orientation=Orientation.Left, number=number, name=name, typ=typ, shape=shape)
+        #         y -= self._pin_grid
+        #     y -= self._pin_grid
 
 @contextlib.contextmanager
 def library(pathprefix):

@@ -274,78 +274,109 @@ class Device(object):
             'X %s %d %d %d %d %s 25 25 0 1 %s %s' % (name, number, x1, y1, length, orientation, typ, shape))
 
     @contextlib.contextmanager
-    def build_ic(self, pin_grid=100, pin_length=150, edge_margin=50):
-        b = ICBuilder(self, pin_grid, pin_length, edge_margin)
+    def build_ic(self, pin_grid=100, pin_length=150, edge_margin=50, min_length=3, min_height=3):
+        b = ICBuilder(self, pin_grid, pin_length, edge_margin, min_length=min_length, min_height=min_height)
         yield b
         b._build()
 
 class ICBuilder(object):
-    def __init__(self, device, pin_grid, pin_length, edge_margin):
+    def __init__(self, device, pin_grid, pin_length, edge_margin, min_length, min_height):
         self._d = device
         self._pin_grid = pin_grid
         self._pin_length = pin_length
         self._edge_margin = edge_margin
-        self._pin_groups = collections.defaultdict(list) # Key: Orientation
+        self._min_length = min_length
+        self._min_height = min_height
+        # Key: Orientation x Gravity
+        self._pin_groups = collections.defaultdict(lambda: collections.defaultdict(list))
         self._current_group = None
 
     def pin_group(self, orientation, gravity=Align.Center):
         self._current_group = []
-        self._pin_groups[orientation].append(self._current_group)
+        self._pin_groups[orientation][gravity].append(self._current_group)
 
     def pin(self, number, name, typ=Electrical.Passive, shape=Shape.Regular):
         self._current_group.append((number, name, typ, shape))
 
-    def _draw_pins(self, groups, orientation):
+    def _num_slots(self):
+        ret = collections.defaultdict(int)
+        for k, v in self._pin_groups.items():
+            groups = list(itertools.chain(*v.values()))
+            pins = sum(len(l) for l in groups)
+            gaps = len(groups)-1
+            ret[k] = pins + gaps
+        return ret
+
+    def _draw_pins(self, groups, pin_orientation, offset, extra_slots):
+        print(extra_slots)
         with self._d.xform.save():
-            for g in groups:
-                for number, name, typ, shape in g:
-                    self._d.pin(0, 0, length=self._pin_length, orientation=orientation, number=number, name=name, typ=typ, shape=shape)
-                    self._d.xform.translate(0, -self._pin_grid)
-                self._d.xform.translate(0, -self._pin_grid)
+            def block(groups):
+                for g in groups:
+                    for number, name, typ, shape in g:
+                        self._d.pin(0, 0, length=self._pin_length, orientation=pin_orientation, number=number, name=name, typ=typ, shape=shape)
+                        self._d.xform.translate(*offset)
+                    self._d.xform.translate(*offset)
+            block(groups[Align.Top] + groups[Align.Left])
+            for _ in range(int(extra_slots/2)):
+                self._d.xform.translate(*offset)
+            block(groups[Align.Center])
+            for _ in range(extra_slots - int(extra_slots/2)):
+                self._d.xform.translate(*offset)
+            block(groups[Align.Bottom] + groups[Align.Right])
 
     def _build(self):
-        slots_left = sum(len(l) for l in self._pin_groups[Orientation.Left]) + max(0, len(self._pin_groups[Orientation.Left])-1)
-        slots_right = sum(len(l)-1 for l in self._pin_groups[Orientation.Right]) + max(0, len(self._pin_groups[Orientation.Right])-1)
-        slots_top = sum(len(l)-1 for l in self._pin_groups[Orientation.Up]) + max(0, len(self._pin_groups[Orientation.Up])-1)
-        slots_bottom = sum(len(l)-1 for l in self._pin_groups[Orientation.Down]) + max(0, len(self._pin_groups[Orientation.Down])-1)
+        num_slots = self._num_slots()
+        slots_lr = max(num_slots[Orientation.Left], num_slots[Orientation.Right], self._min_height)
+        gaps_lr = slots_lr-1
+        slots_ud = max(num_slots[Orientation.Up], num_slots[Orientation.Down], self._min_length)
+        gaps_ud = slots_ud-1
+        print(num_slots)
+        print(slots_lr)
+        print(slots_ud)
 
-        slots_horiz = max(slots_left, slots_right, 2)-1
-        slots_vert = max(slots_top, slots_bottom, 2)-1
-        
         with self._d.xform.save():
-            # Position at the top-left pin.
-            self._d.xform.translate(-(slots_vert/2*self._pin_grid + self._edge_margin + self._pin_length),
-                                    (slots_horiz/2*self._pin_grid))
-            self._draw_pins(self._pin_groups[Orientation.Left], Orientation.Right)
+            # Left-side pins
+            self._d.xform.translate(
+                -(int(gaps_ud/2)*self._pin_grid + self._edge_margin + self._pin_length),
+                int(gaps_lr/2) * self._pin_grid)
+            self._draw_pins(self._pin_groups[Orientation.Left],
+                            Orientation.Right,
+                            (0, -self._pin_grid),
+                            slots_lr - num_slots[Orientation.Left])
 
-            # Top right
-            self._d.xform.translate(slots_vert*self._pin_grid + self._edge_margin*2 + self._pin_length*2, 0)
-            self._draw_pins(self._pin_groups[Orientation.Right], Orientation.Left)
-            # Rectangle top left
-            self._d.xform.translate(-(slots_vert*self._pin_grid + self._edge_margin*2 + self._pin_length), self._edge_margin)
-            self._d.rectangle((0, 0), (slots_vert*self._pin_grid + self._edge_margin*2, -(slots_horiz*self._pin_grid + self._edge_margin*2)))
-                    
+            # Right-side pins
+            self._d.xform.translate(
+                gaps_ud*self._pin_grid + 2*self._edge_margin + 2*self._pin_length,
+                0)
+            self._draw_pins(self._pin_groups[Orientation.Right],
+                            Orientation.Left,
+                            (0, -self._pin_grid),
+                            slots_lr - num_slots[Orientation.Right])
 
-        # h = max(slots_left, slots_right, 2)*self._pin_grid/2 # mils
-        # l = max(slots_top, slots_bottom, 2)*self._pin_grid/2 # mils
-        # if h % self._edge_margin != 0:
-        #     h += self._edge_margin - (h%self._edge_margin)
-        # if l % self._edge_margin != 0:
-        #     l += self._edge_margin - (l%self._edge_margin)
+            # Top pins
+            self._d.xform.translate(
+                -(gaps_ud*self._pin_grid + self._edge_margin + self._pin_length),
+                self._edge_margin + self._pin_length)
+            self._draw_pins(self._pin_groups[Orientation.Up],
+                            Orientation.Down,
+                            (self._pin_grid, 0),
+                            slots_ud - num_slots[Orientation.Up])
 
-        # self._d.rectangle((-l, h), (l, -h))
-        # y = h-self._edge_margin
-        # for g in self._pin_groups[Orientation.Left]:
-        #     for number, name, typ, shape in g:
-        #         self._d.pin(-l-self._pin_length, y, length=self._pin_length, orientation=Orientation.Right, number=number, name=name, typ=typ, shape=shape)
-        #         y -= self._pin_grid
-        #     y -= self._pin_grid
-        # y = h - self._edge_margin
-        # for g in self._pin_groups[Orientation.Right]:
-        #     for number, name, typ, shape in g:
-        #         self._d.pin(l+self._pin_length, y, length=self._pin_length, orientation=Orientation.Left, number=number, name=name, typ=typ, shape=shape)
-        #         y -= self._pin_grid
-        #     y -= self._pin_grid
+            # Bottom pins
+            self._d.xform.translate(
+                0,
+                -(gaps_lr*self._pin_grid + 2*self._edge_margin + 2*self._pin_length))
+            self._draw_pins(self._pin_groups[Orientation.Down],
+                            Orientation.Up,
+                            (self._pin_grid, 0),
+                            slots_ud - num_slots[Orientation.Down])
+
+            # Chip package
+            self._d.xform.translate(
+                -self._edge_margin,
+                (gaps_lr*self._pin_grid + 2*self._edge_margin + self._pin_length))
+            self._d.rectangle((0, 0), (gaps_ud*self._pin_grid + 2*self._edge_margin,
+                                       -(gaps_lr*self._pin_grid + 2*self._edge_margin)))
 
 @contextlib.contextmanager
 def library(pathprefix):

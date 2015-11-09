@@ -22,16 +22,3 @@ with library('stdlib') as l:
     l.std.transistor.jfet.p_channel(gate_pin=2, drain_pin=1, source_pin=3)
     l.std.transistor.mosfet.n_channel(gate_pin=2, drain_pin=1, source_pin=3)
     l.std.transistor.mosfet.p_channel(gate_pin=2, drain_pin=1, source_pin=3)
-
-    d = l.device(name='TC1014', refdes='U', description='Microchip TC1014 linear regulator')
-    with d.build_ic() as ic:
-        ic.pin_group(orientation=Orientation.Left)
-        ic.pin(1, 'Vin', typ=Electrical.PowerInput)
-        ic.pin(3, '~SHDN', typ=Electrical.Input, shape=Shape.ActiveLow)
-        ic.pin(2, 'GND', typ=Electrical.PowerInput)
-
-        ic.pin_group(orientation=Orientation.Right, gravity=Align.Top)
-        ic.pin(5, 'Vout', typ=Electrical.PowerInput)
-
-        ic.pin_group(orientation=Orientation.Right, gravity=Align.Bottom)
-        ic.pin(4, 'Bypass')

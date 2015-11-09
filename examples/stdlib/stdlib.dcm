@@ -57,7 +57,4 @@ $ENDCMP
 $CMP MOSFET_(P-Channel)
 D 
 $ENDCMP
-$CMP TC1014
-D Microchip TC1014 linear regulator
-$ENDCMP
 #End Doc Library

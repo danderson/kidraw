@@ -52,12 +52,12 @@ class _Power(_Lib):
     def gnd(self, name='GND'):
         d = self._l.device(name=name, refdes='#PWR', show_name=True, show_pin_text=False, power=True)
         d.symbols.power.gnd()
-        d.pin(0, 0, name=name, typ=kidraw.Electrical.PowerInput, visible=False)
+        d.pin(0, 0, name=name, typ=kidraw.Electrical.PowerOutput, visible=False)
 
     def flag(self):
         d = self._l.device(name='PWR_FLAG', refdes='#FLG', show_name=False, show_pin_text=False, power=True)
         d.symbols.power.flag()
-        d.pin(0, 0, typ=kidraw.Electrical.PowerOutput, visible=False)
+        d.pin(0, 0, typ=kidraw.Electrical.PowerInput, visible=False)
 
 class _Transistor(_Lib):
     class _BJT(object):

@@ -1,82 +1,21 @@
-import collections
 import contextlib
-import itertools
+import enum
 import math
 
-from . import devices
-from . import symbols
-
-DefaultWidth = 6
-
-class Align(object):
-    Center = 'C'
-    Left = 'L'
-    Right = 'R'
-    Top = 'T'
-    Bottom = 'B'
-
-class FillMode(object):
-    Transparent = ''
-    Foreground = 'F'
-    Background = 'f'
-
-class Orientation(object):
-    Up = 'U'
-    Down = 'D'
-    Left = 'L'
-    Right = 'R'
-
-class Electrical(object):
-    Input = 'I'
-    Output = 'O'
-    Bidirectional = 'B'
-    Tristate = 'T'
-    Passive = 'P'
-    OpenCollector = 'C'
-    OpenEmitter = 'E'
-    NotConnected = 'N'
-    Unspecified = 'U'
-    PowerInput = 'W'
-    PowerOutput = 'w'
-
-class Shape(object):
-    Regular = ''
-    ActiveLow = 'I'
-    Clock = 'C'
-
-class Library(object):
-    def __init__(self):
-        self._devices = []
-        self.std = devices.Devices(self)
-
-    def _lib(self):
-        return '\n'.join([
-            'EESchema-LIBRARY Version 2.3',
-            '#encoding utf-8',
-        ] + [x._lib() for x in self._devices] + [
-            '#End Library',
-        ])
-
-    def _doc(self):
-        return '\n'.join([
-            'EESchema-DOCLIB  Version 2.0',
-            '#',
-        ] + [x._doc() for x in self._devices] + [
-            '#End Doc Library'
-        ])
-
-    def device(self, name, refdes, description='', show_name=True, show_pin_text=True, copy_from=None, pin_align=50, power=False, flip_labels=False):
-        d = Device(name, refdes, description=description, show_name=show_name, show_pin_text=show_pin_text, pin_align=pin_align, power=power, flip_labels=flip_labels)
-        if copy_from is not None:
-            d._copyfrom(copy_from)
-        self._devices.append(d)
-        return d
+RIGHT = 'R'
+LEFT = 'L'
+UP = 'U'
+DOWN = 'D'
 
 class Transform(object):
     def __init__(self):
         self._xform = [[1, 0, 0],
                        [0, 1, 0],
                        [0, 0, 1]]
+        self._angle = 0.0
+        self._saved = []
+        self._x_minmax = (0, 0)
+        self._y_minmax = (0, 0)
 
     def _vecmult(self, a, b):
         return sum(float(x)*float(y) for x,y in zip(a, b))
@@ -90,299 +29,704 @@ class Transform(object):
         for row in range(3):
             for col in range(3):
                 self._xform[row][col] = self._vecmult(old[row], new[col])
-        
-    def _fcoords(self, x, y):
-        c = [x, y, 1]
-        return self._vecmult(self._xform[0], c), self._vecmult(self._xform[1], c)
 
-    def _coords(self, x, y):
-        x, y = self._fcoords(x, y)
-        return round(x), round(y)
-        
     def translate(self, x, y):
+        """Move the origin by x horizontally and y vertically."""
         self._mult([[1, 0, x],
                     [0, 1, y],
                     [0, 0, 1]])
 
     def rotate(self, alpha):
+        """Rotate clockwise by alpha degrees."""
+        self._angle = ((self._angle + 180 + alpha) % 360) - 180
         alpha = math.radians(alpha)
         self._mult([[math.cos(alpha), math.sin(alpha), 0],
                     [-math.sin(alpha), math.cos(alpha), 0],
                     [0, 0, 1]])
 
     def scale(self, sx, sy):
+        """Scale the grid by sx horizontally and sy vertically."""
         self._mult([[sx, 0, 0],
                     [0, sy, 0],
                     [0, 0, 1]])
 
-    @contextlib.contextmanager
-    def save(self):
-        saved = self._xform
-        yield
-        self._xform = saved
+    def push(self):
+        self._saved.append((self._xform, self._angle))
+
+    def pop(self):
+        self._xform, self._angle = self._saved.pop()
+
+    def fcoords(self, x, y):
+        c = [x, y, 1]
+        return self._vecmult(self._xform[0], c), self._vecmult(self._xform[1], c)
+
+    def coords(self, x, y):
+        x, y = self.fcoords(x, y)
+        return round(x), round(y)
+
+    def angle(self, alpha):
+        return ((self._angle + 180 + alpha) % 360) - 180
+
+    def boundingbox(self, x, y):
+        x, y = self.coords(x, y)
+        a, b = self._x_minmax
+        self._x_minmax = (min(a, x), max(b, x))
+        a, b = self._y_minmax
+        self._y_minmax = (min(a, y), max(b, y))
+
+    @property
+    def x_min(self):
+        return self._x_minmax[0]
+
+    @property
+    def x_max(self):
+        return self._x_minmax[1]
+
+    @property
+    def y_min(self):
+        return self._y_minmax[0]
+
+    @property
+    def y_max(self):
+        return self._y_minmax[1]
+
+class Library(object):
+    def __init__(self):
+        self._devices = {}
+
+    def device(self, name):
+        d = Device(name)
+
+        if d.name in self._devices:
+            raise RuntimeError('Tried to define device "%s" twice', name)
+        self._devices[d.name] = d
+        return d
+
+    def _devs(self):
+        return [d for _, d in sorted(self._devices.items())]
+    
+    def schematic_doc(self):
+        return '''EESchema-DOCLIB  Version 2.0
+#
+%s
+#End Doc Library''' % '\n'.join(d._doc() for d in self._devs())
+
+    def schematic_lib(self):
+        return '''EESchema-LIBRARY Version 2.3
+#encoding utf-8
+%s
+#End Library''' % '\n'.join(d.sch() for d in self._devs())
+
+    def footprint_lib(self):
+        return dict((d.name, '') for d in self._devs())
+    
+    def write(self, filename):
+        with open(filename+'.lib', 'w') as f:
+            f.write(self.schematic_lib())
+        with open(filename+'.dcm', 'w') as f:
+            f.write(self.schematic_doc())
 
 class Device(object):
-    def __init__(self, name, refdes, description, show_name, show_pin_text, pin_align, power, flip_labels):
+    def __init__(self, name):
         self._name = name.replace(' ', '_')
+        self._refdes = 'U'
+        self._description = name
+        self._show_pin_text = True
+        self._power_symbol = False
+        self._num_pins = 0
+        self._pins = {}
+        self._schematic = Schematic(self._pins)
+        self._footprints = {}
+
+    @property
+    def name(self):
+        return self._name
+
+    ## Mutators
+    
+    def refdes(self, refdes):
         self._refdes = refdes
+        return self
+
+    def description(self, description):
         self._description = description
-        self._show_name = show_name
-        self._show_pin_text = show_pin_text
-        self._min_y, self._max_y = 0, 0
-        self._assigned_pin_nums = set()
-        self._parts = []
-        self._pin_align = pin_align
-        self._power = power
-        self._flip_labels = flip_labels
-        self.xform = Transform()
-        self.symbols = symbols.Symbols(self)
+        return self
 
-    def _lib(self):
-        kind = 'P' if self._power else 'N'
-        show_pins = 'Y' if self._show_pin_text else 'N'
-        show_name = 'V' if self._show_name else 'I'
-        name_y = self._max_y+20 if self._flip_labels else self._min_y-20
-        name_align = Align.Bottom if self._flip_labels else Align.Top
-        show_refdes = 'I' if self._power else 'V'
-        refdes_y = self._min_y-20 if self._flip_labels else self._max_y+20
-        refdes_align = Align.Top if self._flip_labels else Align.Bottom
-        return '\n'.join([
-            'DEF %s %s 0 0 %s %s 1 F %s' % (self._name, self._refdes, show_pins, show_pins, kind),
-            'F0 "%s" 0 %d 50 H %s C %sNN' % (self._refdes, refdes_y, show_refdes, refdes_align),
-            'F1 "%s" 0 %d 50 H %s C %sNN' % (self._name, name_y, show_name, name_align),
-            'F2 "" 0 0 50 H I C CNN',
-            'F3 "" 0 0 50 H I C CNN',
-            'DRAW',
-        ] + [str(x) for x in self._parts] + [
-            'ENDDRAW',
-            'ENDDEF',
-        ])
+    def hide_pin_text(self):
+        self._show_pin_text = False
+        return self
 
-    def _doc(self):
-        return '\n'.join([
-            '$CMP %s' % self._name,
-            'D %s' % self._description,
-            '$ENDCMP',
-        ])
+    def power_symbol(self):
+        self._power_symbol = True
+        return self
+    
+    def num_pins(self, num_pins):
+        if self._pins and max(self._pins.keys()) > num_pins:
+            raise RuntimeError('Pin count is smaller than highest pin#')
+        self._num_pins = num_pins
 
-    def _copyfrom(self, other):
-        self.xform = Transform()
-        self._min_y, self._max_y = other._min_y, other._max_y
-        self._assigned_pin_nums = set(other._assigned_pin_nums)
-        self._parts = list(other._parts)
+    def pin(self, *numbers):
+        numbers = set(numbers)
+        p = Pin(numbers)
+        self._num_pins = max(self._num_pins, *numbers)
+        for n in numbers:
+            if n in self._pins:
+                raise RuntimeError('Tried to define pin %d for %s twice', n, self._name)
+            self._pins[n] = p
+        return p
+    
+    def schematic(self):
+        if self._schematic is not None:
+            return self._schematic
+        self._schematic = Schematic(self._pins)
+        return self._schematic
 
-    def line(self, *points, width=DefaultWidth, fillmode=FillMode.Transparent):
-        points = [self.xform._coords(x, y) for x,y in points]
-        p = ['%d %d' % (x, y) for x, y in points]
-        self._min_y = min(self._min_y, min(x[1] for x in points))
-        self._max_y = max(self._max_y, max(x[1] for x in points))
-        self._parts.append(
-            'P %d 0 1 %d %s %s' % (len(points), width, ' '.join(p), fillmode))
+    def footprint(self, name):
+        f = Footprint(name, self._pins)
+        if f.name in self._footprints:
+            raise RuntimeError('Tried to define footprint "%s" twice', name)
+        self._footprints[f.name] = f
+        return f
 
-    def arc(self, a, b, c, width=DefaultWidth, fillmode=FillMode.Transparent):
-        x1, y1 = self.xform._fcoords(*a)
-        x2, y2 = self.xform._fcoords(*b)
-        x3, y3 = self.xform._fcoords(*c)
-        s1, s2, s3 = x1**2+y1**2, x2**2+y2**2, x3**2+y3**2
+    ## Outputters
 
-        self._min_y = min(self._min_y, y1, y2, y3)
-        self._max_y = max(self._min_y, y1, y2, y3)
+    def doc(self):
+        return '''$CMP %s
+D %s
+$ENDCMP''' % (self._name, self._description)
 
-        # http://mathforum.org/library/drmath/view/55239.html
-        cx = ((s1*y2 + s2*y3 + s3*y1 - s3*y2 - s2*y1 - s1*y3) /
-              (x1*y2 + x2*y3 + x3*y1 - x3*y2 - x2*y1 - x1*y3) /
-              2)
-        cy = ((s2*x1 + s3*x2 + s1*x3 - s2*x3 - s1*x2 - s3*x1) /
-              (x1*y2 + x2*y3 + x3*y1 - x3*y2 - x2*y1 - x1*y3) /
-              2)
-        r = math.sqrt((x1-cx)**2 + (y1-cy)**2)
+    def sch(self):
+        return '''DEF %(name)s %(refdes)s 0 0 %(show_pins)s %(show_pins)s 1 F %(kind)s
+F0 "%(refdes)s" 0 %(refdes_y)d 50 H %(refdes_show)s C %(refdes_align)sNN
+F1 "%(name)s" 0 %(name_y)d 50 H V C %(name_align)sNN
+F2 "" 0 0 50 H I C CNN
+F3 "" 0 0 50 H I C CNN
+DRAW
+%(drawing)s
+ENDDRAW
+ENDDEF''' % {
+    'name': self._name,
+    'refdes': self._refdes,
+    'show_pins': 'Y' if self._show_pin_text else 'N',
+    'kind': 'P' if self._power_symbol else 'N',
+    'refdes_y': 0, # TODO: align
+    'refdes_show': 'I' if self._power_symbol else 'V',
+    'refdes_align': 'B', # TODO: align
+    'name_y': 0, # TODO: align
+    'name_align': 'T', # TODO: align
+    'drawing': self._schematic.sch(),
+}
 
-        a1 = math.degrees(math.acos((x1-cx)/r))*10
-        if y1-cy < 0:
-            a1 *= -1
-        a3 = math.degrees(math.acos((x3-cx)/r))*10
-        if y3-cy < 0:
-            a3 *= -1
+class Pin(object):
+    def __init__(self, numbers=[]):
+        self._numbers = set(numbers)
+        self._name = str(min(numbers))
+        self._type = 'U'
 
-        cx, cy, r, a1, a3, x1, y1, x3, y3 = round(cx), round(cy), round(r), round(a1), round(a3), round(x1), round(y1), round(x3), round(y3)
-
-        self._parts.append(
-            'A %d %d %d %d %d 0 1 %d %s %d %d %d %d' % (cx, cy, r, a1, a3, width, fillmode, x1, y1, x3, y3))
+    @property
+    def numbers(self):
+        return self._numbers
         
-    def rectangle(self, topleft, bottomright, width=DefaultWidth, fillmode=FillMode.Transparent):
-        (x1, y1), (x2, y2) = topleft, bottomright
-        # Use a polyline instead of a rectangle, because rectangles can't be rotated.
-        self.line((x1, y1), (x1, y2), (x2, y2), (x2, y1), (x1, y1), width=width, fillmode=fillmode)
-        # self._parts.append(
-        #     'S %d %d %d %d 0 1 %d %s' % (topleft[0], topleft[1], bottomright[0], bottomright[1], width, fillmode))
+    def _set_type(self, t):
+        if self._type != 'U':
+            raise RuntimeError('Tried to set pin type twice')
+        self._type = t
+        return self
+
+    def name(self, n):
+        self._name = n.replace(' ', '_')
+        return self
+
+    ##
+    ## Electrical type
+    ##
         
-    def circle(self, x, y, radius, width=DefaultWidth, fillmode=FillMode.Transparent):
-        x, y = self.xform._coords(x, y)
-        self._min_y = min(self._min_y, y-radius)
-        self._max_y = max(self._max_y, y+radius)
-        self._parts.append(
-            'C %d %d %d 0 1 %d %s' % (x, y, radius, width, fillmode))
+    def input(self):
+        return self._set_type('I')
 
-    def text(self, x, y, text, angle=0.0, size=50, italic=False, bold=False, halign=Align.Center, valign=Align.Center):
-        x, y = self.xform._coords(x, y)
-        italic = 'Italic' if italic else 'Normal'
-        bold = 1 if bold else 0
-        self._parts.append(
-            'T %d %d %d %d 0 0 1 "%s" %s %d %s %s' % (int(angle*10), x, y, size, text.replace('"', "'"), italic, bold, halign, valign))
+    def output(self):
+        return self._set_type('O')
 
-    def pin(self, x1, y1, length=0, number=None, name='~', orientation=Orientation.Right, typ=Electrical.Passive, shape=Shape.Regular, visible=True):
-        x2, y2 = x1, y1
-        if orientation == Orientation.Up:
-            y2 += length
-        elif orientation == Orientation.Down:
-            y2 -= length
-        elif orientation == Orientation.Right:
-            x2 += length
-        elif orientation == Orientation.Left:
-            x2 -= length
+    def bidirectional(self):
+        return self._set_type('B')
 
-        x1, y1 = self.xform._coords(x1, y1)
-        x2, y2 = self.xform._coords(x2, y2)
-        dx, dy = x2 - x1, y2 - y1
-        if dx != 0 and dy != 0:
-            raise ValueError('Pin must be vertical or horizontal in final drawing')
+    def tristate(self):
+        return self._set_type('T')
 
-        if dy > 0:
-            orientation = Orientation.Up
-        elif dy < 0:
-            orientation = Orientation.Down
-        elif dx > 0:
-            orientation = Orientation.Right
-        elif dx < 0:
-            orientation = Orientation.Left
+    def passive(self):
+        return self._set_type('P')
 
-        self._min_y = min(self._min_y, y1, y2)
-        self._max_y = max(self._max_y, y1, y2)
-            
-        if x1%self._pin_align != 0:
-            raise ValueError('Pin X is not on the %dmil grid: %d' % (self._pin_align, x1))
-        if y1%self._pin_align != 0:
-            raise ValueError('Pin X is not on the %dmil grid: %d' % (self._pin_align, y1))
-        if number is None:
-            number = 1
-            while number in self._assigned_pin_nums:
-                number += 1
-            self._assigned_pin_nums.add(number)
-        if not visible:
-            shape = 'N'+shape
-        self._parts.append(
-            'X %s %d %d %d %d %s 25 25 0 1 %s %s' % (name, number, x1, y1, length, orientation, typ, shape))
+    def open_collector(self):
+        return self._set_type('C')
+
+    def open_emitter(self):
+        return self._set_type('E')
+
+    def not_connected(self):
+        return self._set_type('N')
+
+    def power(self):
+        return self._set_type('W')
+
+    def power_flag(self):
+        return self._set_type('w')
+
+class Schematic(object):
+    def __init__(self, pins):
+        self._pin_ref = pins
+        self._commands = []
+
+    ###
+
+    def translate(self, x, y):
+        def run(out, xform):
+            xform.translate(x, y)
+        self._commands.append(run)
+        return self
+
+    def rotate(self, a):
+        def run(out, xform):
+            xform.rotate(a)
+        self._commands.append(run)
+        return self
+
+    def scale(self, sx, sy):
+        def run(out, xform):
+            xform.scale(sx, sy)
+        self._commands.append(run)
+        return self
 
     @contextlib.contextmanager
-    def build_ic(self, pin_grid=100, pin_length=150, edge_margin=50, min_length=3, min_height=3):
-        b = ICBuilder(self, pin_grid, pin_length, edge_margin, min_length=min_length, min_height=min_height)
-        yield b
-        b._build()
+    def save_position(self):
+        self._commands.append(lambda _, xform: xform.push())
+        yield
+        self._commands.append(lambda _, xform: xform.pop())
 
-class ICBuilder(object):
-    def __init__(self, device, pin_grid, pin_length, edge_margin, min_length, min_height):
-        self._d = device
-        self._pin_grid = pin_grid
-        self._pin_length = pin_length
-        self._edge_margin = edge_margin
-        self._min_length = min_length
-        self._min_height = min_height
-        # Key: Orientation x Gravity
-        self._pin_groups = collections.defaultdict(lambda: collections.defaultdict(list))
-        self._current_group = None
+    ###
+        
+    class _Line(object):
+        def __init__(self, points):
+            self._points = points
+            self._width = 6
+            self._filled = False
 
-    def pin_group(self, orientation, gravity=Align.Center):
-        self._current_group = []
-        self._pin_groups[orientation][gravity].append(self._current_group)
+        def width(self, w):
+            self._width = w
+            return self
 
-    def pin(self, number, name, typ=Electrical.Passive, shape=Shape.Regular):
-        self._current_group.append((number, name, typ, shape))
+        def filled(self):
+            self._filled = True
+            return self
 
-    def _num_slots(self):
-        ret = collections.defaultdict(int)
-        for k, v in self._pin_groups.items():
-            groups = list(itertools.chain(*v.values()))
-            pins = sum(len(l) for l in groups)
-            gaps = len(groups)-1
-            ret[k] = pins + gaps
-        return ret
+        def __call__(self, out, xform):
+            for x, y in self._points:
+                xform.boundingbox(x, y)
+            p = ['%d %d' % xform.coords(x, y) for x, y in self._points]
+            out.append('P %d 0 1 %d %s %s' % (len(p), self._width, ' '.join(p), 'F' if self._filled else 'N'))
 
-    def _draw_pins(self, groups, pin_orientation, offset, extra_slots):
-        print(extra_slots)
-        with self._d.xform.save():
-            def block(groups):
-                for g in groups:
-                    for number, name, typ, shape in g:
-                        self._d.pin(0, 0, length=self._pin_length, orientation=pin_orientation, number=number, name=name, typ=typ, shape=shape)
-                        self._d.xform.translate(*offset)
-                    self._d.xform.translate(*offset)
-            block(groups[Align.Top] + groups[Align.Left])
-            for _ in range(int(extra_slots/2)):
-                self._d.xform.translate(*offset)
-            block(groups[Align.Center])
-            for _ in range(extra_slots - int(extra_slots/2)):
-                self._d.xform.translate(*offset)
-            block(groups[Align.Bottom] + groups[Align.Right])
+    def line(self, *points):
+        self._commands.append(self._Line(points))
+        return self._commands[-1]
 
-    def _build(self):
-        num_slots = self._num_slots()
-        slots_lr = max(num_slots[Orientation.Left], num_slots[Orientation.Right], self._min_height)
-        gaps_lr = slots_lr-1
-        slots_ud = max(num_slots[Orientation.Up], num_slots[Orientation.Down], self._min_length)
-        gaps_ud = slots_ud-1
-        print(num_slots)
-        print(slots_lr)
-        print(slots_ud)
+    def rect(self, p1, p2):
+        (x1, y1), (x2, y2) = p1, p2
+        return self.line((x1, y1), (x1, y2), (x2, y2), (x2, y1), (x1, y1))
 
-        with self._d.xform.save():
-            # Left-side pins
-            self._d.xform.translate(
-                -(int(gaps_ud/2)*self._pin_grid + self._edge_margin + self._pin_length),
-                int(gaps_lr/2) * self._pin_grid)
-            self._draw_pins(self._pin_groups[Orientation.Left],
-                            Orientation.Right,
-                            (0, -self._pin_grid),
-                            slots_lr - num_slots[Orientation.Left])
+    class _Circle(object):
+        def __init__(self, pos, r):
+            self._pos = pos
+            self._radius = r
+            self._width = 6
+            self._filled = False
 
-            # Right-side pins
-            self._d.xform.translate(
-                gaps_ud*self._pin_grid + 2*self._edge_margin + 2*self._pin_length,
-                0)
-            self._draw_pins(self._pin_groups[Orientation.Right],
-                            Orientation.Left,
-                            (0, -self._pin_grid),
-                            slots_lr - num_slots[Orientation.Right])
+        def width(self, w):
+            self._width = w
+            return self
 
-            # Top pins
-            self._d.xform.translate(
-                -(gaps_ud*self._pin_grid + self._edge_margin + self._pin_length),
-                self._edge_margin + self._pin_length)
-            self._draw_pins(self._pin_groups[Orientation.Up],
-                            Orientation.Down,
-                            (self._pin_grid, 0),
-                            slots_ud - num_slots[Orientation.Up])
+        def filled(self):
+            self._filled = True
+            return self
 
-            # Bottom pins
-            self._d.xform.translate(
-                0,
-                -(gaps_lr*self._pin_grid + 2*self._edge_margin + 2*self._pin_length))
-            self._draw_pins(self._pin_groups[Orientation.Down],
-                            Orientation.Up,
-                            (self._pin_grid, 0),
-                            slots_ud - num_slots[Orientation.Down])
+        def __call__(self, out, xform):
+            x, y = self._pos
+            xform.boundingbox(x-self._radius, y-self._radius)
+            xform.boundingbox(x+self._radius, y+self._radius)
+            a, b = xform.coords(x, y)
+            out.append('C %d %d %d 0 1 %d %s' % (a, b, self._radius, self._width, 'F' if self._filled else 'N'))
+    
+    def circle(self, center, radius):
+        self._commands.append(self._Circle(center, radius))
+        return self._commands[-1]
 
-            # Chip package
-            self._d.xform.translate(
-                -self._edge_margin,
-                (gaps_lr*self._pin_grid + 2*self._edge_margin + self._pin_length))
-            self._d.rectangle((0, 0), (gaps_ud*self._pin_grid + 2*self._edge_margin,
-                                       -(gaps_lr*self._pin_grid + 2*self._edge_margin)))
+    class _Pin(object):
+        def __init__(self, number, pin_ref):
+            self._number = number
+            self._pin_ref = pin_ref
+            self._pos = (0, 0)
+            self._len = 0
+            self._font_size = 50
+            self._dir = RIGHT
+            self._shape = ''
 
-@contextlib.contextmanager
-def library(pathprefix):
-    l = Library()
-    yield l
-    with open(pathprefix+'.lib', 'w') as f:
-        f.write(l._lib())
-    with open(pathprefix+'.dcm', 'w') as f:
-        f.write(l._doc())
+        def pos(self, x, y):
+            self._pos = (x, y)
+            return self
+
+        def len(self, l):
+            self._len = l
+            return self
+
+        def font_size(self, s):
+            self._font_size = s
+            return self
+        
+        def dir(self, d):
+            self._dir = d
+            return self
+
+        def active_low(self):
+            self._shape = 'I'
+            return self
+
+        def clock(self):
+            self._shape = 'C'
+            return self
+
+        def __call__(self, out, xform):
+            x, y = self._pos
+            xform.boundingbox(x, y)
+            if self._dir == RIGHT:
+                xform.boundingbox(x+self._len, y)
+            elif self._dir == LEFT:
+                xform.boundingbox(x-self._len, y)
+            elif self._dir == UP:
+                xform.boundingbox(x, y+self._len)
+            elif self._dir == DOWN:
+                xform.boundingbox(x, y-self._len)
+            x, y = xform.coords(x, y)
+            out.append('X %s %d %d %d %d %s %d %d 0 1 %s %s' % (self._pin_ref._name, self._number, x, y, self._len, self._dir, self._font_size, self._font_size, self._pin_ref._type, self._shape))
+
+    def pin(self, *numbers):
+        numbers = set(numbers)
+        pins = set([frozenset(getattr(self._pin_ref.get(x), 'numbers', set())) for x in numbers])
+        if len(pins) != 1:
+            raise RuntimeError('Drawing nonsensical pin')
+        if list(pins)[0] != numbers:
+            raise RuntimeError('Pin numbers must match between device and schematic')
+        n = sorted(numbers)[0]
+        p = self._Pin(n, self._pin_ref[n])
+        self._commands.append(p)
+        return p
+
+    class _Arc(object):
+        def __init__(self, pos, radius, a1, a2):
+            self._pos = pos
+            self._radius = radius
+            self._angles = (a1, a2)
+            self._width = 6
+            self._filled = False
+
+        def width(self, w):
+            self._width = w
+            return self
+
+        def filled(self):
+            self._filled = True
+            return self
+
+        def __call__(self, out, xform):
+            x, y = self._pos
+            a1, a2 = self._angles
+
+            a, b = xform.coords(x, y)
+            x1, y1 = xform.coords(x+(math.cos(math.radians(a1))*self._radius), y+(math.sin(math.radians(a1))*self._radius))
+            x2, y2 = xform.coords(x+(math.cos(math.radians(a2))*self._radius), y+(math.sin(math.radians(a2))*self._radius))
+            
+            out.append('A %d %d %d %d %d 0 1 %d %s %d %d %d %d' % (a, b, self._radius, xform.angle(a1)*10, xform.angle(a2)*10, self._width, 'F' if self._filled else 'N', x1, y1, x2, y2))
+
+    def arc(self, center, radius, a1, a2):
+        self._commands.append(self._Arc(center, radius, a1, a2))
+        return self._commands[-1]
+
+    class _Text(object):
+        def __init__(self, pos, txt):
+            self._txt = txt
+            self._pos = pos
+            self._font_size = 50
+            self._halign = 'C'
+            self._valign = 'C'
+
+        def font_size(self, sz):
+            self._font_size = sz
+            return self
+
+        def halign(self, align):
+            self._halign = align
+            return self
+        
+        def valign(self, align):
+            self._valign = align
+            return self
+
+        def __call__(self, out, xform):
+            a, b = xform.coords(*self._pos)
+            out.append('T 0 %d %d %d 0 0 1 "%s" Normal 0 %s %s' % (a, b, self._font_size, self._txt, self._halign, self._valign))
+
+    def text(self, pos, txt):
+        self._commands.append(self._Text(pos, txt))
+        return self._commands[-1]
+
+    def sch(self):
+        out, xform = [], Transform()
+        for cmd in self._commands:
+            cmd(out, xform)
+        return '\n'.join(out)
+
+class Footprint(object):
+
+    class _Feature(object):
+        def __init__(self):
+            self._side = 'F'
+            self._layer = 'SilkS'
+            self._width = 0.15
+
+        def top(self):
+            self._side = 'F'
+            return self
+
+        def bottom(self):
+            self._side = 'B'
+            return self
+
+        def silkscreen(self):
+            self._layer = 'SilkS'
+            return self
+            
+        def fab(self):
+            self._layer = 'Fab'
+            return self
+
+        def width(self, w):
+            self._width = w
+        
+    def __init__(self, name, pins):
+        self._name = name.replace(' ', '_')
+        self._pin_ref = pins
+        self._mask_margin = None
+        self._paste_margin = None
+        self._clearance = None
+        self._commands = []
+
+    @property
+    def name(self):
+        return self._name
+        
+    def mask_margin(self, m):
+        self._mask_margin = m
+        return self
+
+    def paste_margin(self, m):
+        self._paste_margin = -m
+        return self
+
+    def clearance(self, m):
+        self._clearance = m
+        return self
+
+    def _cmd(self, f):
+        self._commands.append(f)
+        return self._commands[-1]
+        
+    class _Pad(object):
+        def __init__(self, number):
+            self._number = number
+            self._pos = (0, 0)
+            self._shape = 'circle'
+            self._size = (0, 0)
+            self._type = None
+            self._drill = None
+            self._mask_margin = None
+            self._paste_margin = None
+            self._clearance = None
+            self._thermal_width = None
+            self._thermal_gap = None
+
+        def pos(self, x, y):
+            self._pos = (x, y)
+            return self
+
+        ## Pad type
+        
+        def smd(self):
+            self._type = 'smd'
+            self._drill = None
+            return self
+
+        def thruhole(self, drill_diameter):
+            self._type = 'thru_hole'
+            self._drill = drill_diameter
+            return self
+
+        def test_point(self):
+            self._type = 'connector'
+            self._drill = None
+            return self
+        connector = test_point
+            
+        ## Pad shape
+        
+        def rect(self, w, h):
+            self._size = (w, h)
+            return self
+
+        def circle(self, r):
+            self._size = (r, r)
+            return self
+
+        def oval(self, w, h):
+            self._size = (w, h)
+            return self
+
+        ## Misc
+
+        def drill(self, size):
+            self._drill = size
+            return self
+
+        def mask_margin(self, m):
+            self._mask_margin = m
+            return self
+
+        def paste_margin(self, m):
+            self._paste_margin = -m
+            return self
+
+        def clearance(self, m):
+            self._clearance = m
+            return self
+        
+        def thermal_relief(self, width, gap):
+            self._thermal_width = width
+            self._thermal_gap = gap
+            return self
+
+        def __call__(self, out, xform):
+            shape = self._shape or ('rect' if self._smd else 'circle')
+            out.append('(pad %s %s %s' % (self._number, self._type, shape))
+            out.append('(at %d %d)' % xform.coords(*self._pos))
+            out.append('(size %d %d)' % self._size)
+            if self._type == 'smd' or self._type == 'connector':
+                out.append('(layers F.Cu F.Paste F.Mask F.SilkS)')
+            else:
+                out.append('(layers *.Cu *.Mask F.SilkS)')
+                out.append('(drill %d)' % self._drill)
+            if self._mask_margin is not None:
+                out.append('(solder_mask_margin %d)' % self._mask_margin)
+            if self._paste_margin is not None:
+                out.append('(solder_paste_margin %d)' % self._paste_margin)
+            if self._clearance is not None:
+                out.append('(clearance %d)' % self._clearance)
+            if self._thermal_width is not None:
+                out.append('(zone_connect 1)')
+                out.append('(thermal_width %d)' % self._thermal_width)
+                out.append('(thermal_gap %d)' % self._thermal_gap)
+            out.append(')')
+
+    def pad(self, number):
+        if number not in self._pin_ref:
+            raise RuntimeError('Cannot draw non-existent pin')
+        return self._cmd(self._Pad(number))
+
+    class _Text(_Feature):
+        def __init__(self, typ, txt):
+            super().__init__()
+            self._typ = typ
+            self._text = txt
+            self._pos = (0, 0)
+            self._size = None
+            self._thickness = None
+
+        def pos(self, x, y):
+            self._pos = (x, y)
+            return self
+
+        def size(self, x, y):
+            self._size = (x, y)
+            return self
+
+        def thickness(self, t):
+            self._thickness = t
+            return self
+
+        def __call__(self, out, xform):
+            out.append('(fp_text %s "%s"' % (self._typ, self._text))
+            out.append('(at %d %d)' % xform.coords(*self._pos))
+            out.append('(layer F.SilkS)')
+            if self._size is not None or self._thickness is not None:
+                out.append('(effects (font ')
+                if self._size is not None:
+                    out.append('(size %d %d)' % self._size)
+                if self._thickness is not None:
+                    out.append('(thickness %d)' % self._thickness)
+                out.append(') )')
+            out.append(')')
+            
+    def text(self, txt):
+        return self._cmd(self._Text('user', txt))
+
+    def refdes(self):
+        return self._cmd(self._Text('reference', 'REFDES'))
+
+    def value(self):
+        return self._cmd(self._Text('value', 'VALUE'))
+
+    class _Line(_Feature):
+        def __init__(self, start, end):
+            super().__init__()
+            self._start = start
+            self._end = end
+
+        def __call__(self, out, xform):
+            out.append('(fp_line (layer F.SilkS)')
+            out.append('(start %d %d)' % xform.coords(*self._start))
+            out.append('(end %d %d)' % xform.coords(*self._end))
+            out.append('(width %d)' % self._width)
+            out.append(')')
+
+    def line(self, start, end):
+        return self._cmd(self._Line(start, end))
+
+    class _Circle(_Feature):
+        def __init__(self, center, radius):
+            super().__init__()
+            self._center = center
+            self._radius = radius
+            
+        def __call__(self, out, xform):
+            out.append('(fp_circle (layer F.SilkS)')
+            out.append('(center %d %d)' % xform.coords(*self._center))
+            out.append('(end %d %d)' % xform.coords(self._center[0]+self._radius, self._center[1]))
+            out.append('(width %d)' % self._width)
+            out.append(')')
+
+    def circle(self, center, r):
+        return self._cmd(self._Circle(center, r))
+
+    def arc(self):
+        raise NotImplementedError
+
+    def poly(self):
+        raise NotImplementedError
+
+    def footprint(self):
+        out, xform = [], Transform()
+        if self._mask_margin is not None:
+            out.append('(solder_mask_margin %d)' % self._mask_margin)
+        if self._paste_margin is not None:
+            out.append('(solder_paste_margin %d)' % self._paste_margin)
+        if self._clearance is not None:
+            out.append('(clearance %d)' % self._clearance)
+        for cmd in self._commands:
+            cmd(out, xform)
+        draw = ' '.join(out)
+        return '(module %s (layer F.Cu) (tedit 0) %s )' % (self.name, draw)

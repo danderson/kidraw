@@ -1,6 +1,8 @@
 import contextlib
 import enum
 import math
+import shutil
+import os.path
 
 RIGHT = 'R'
 LEFT = 'L'
@@ -104,12 +106,12 @@ class Library(object):
 
     def _devs(self):
         return [d for _, d in sorted(self._devices.items())]
-    
+
     def schematic_doc(self):
         return '''EESchema-DOCLIB  Version 2.0
 #
 %s
-#End Doc Library''' % '\n'.join(d._doc() for d in self._devs())
+#End Doc Library''' % '\n'.join(d.doc() for d in self._devs())
 
     def schematic_lib(self):
         return '''EESchema-LIBRARY Version 2.3
@@ -118,13 +120,23 @@ class Library(object):
 #End Library''' % '\n'.join(d.sch() for d in self._devs())
 
     def footprint_lib(self):
-        return dict((d.name, '') for d in self._devs())
-    
-    def write(self, filename):
-        with open(filename+'.lib', 'w') as f:
+        out = []
+        for d in self._devs():
+            for n, fp in d.footprints():
+                out.append((n, fp))
+        return out
+
+    def write(self, filename_base):
+        with open(filename_base+'.lib', 'w') as f:
             f.write(self.schematic_lib())
-        with open(filename+'.dcm', 'w') as f:
+        with open(filename_base+'.dcm', 'w') as f:
             f.write(self.schematic_doc())
+        if os.path.isdir(filename_base):
+            shutil.rmtree(filename_base)
+        os.makedirs(filename_base)
+        for name, footprint in self.footprint_lib():
+            with open(os.path.join(filename_base, name+'.kicad_mod'), 'w') as f:
+                f.write(footprint)
 
 class Device(object):
     def __init__(self, name):
@@ -132,6 +144,8 @@ class Device(object):
         self._refdes = 'U'
         self._description = name
         self._show_pin_text = True
+        self._show_name = True
+        self._flip_text = False
         self._power_symbol = False
         self._num_pins = 0
         self._pins = {}
@@ -154,6 +168,14 @@ class Device(object):
 
     def hide_pin_text(self):
         self._show_pin_text = False
+        return self
+
+    def hide_name(self):
+        self._show_name = False
+        return self
+
+    def flip_text(self):
+        self._flip_text = True
         return self
 
     def power_symbol(self):
@@ -196,9 +218,11 @@ D %s
 $ENDCMP''' % (self._name, self._description)
 
     def sch(self):
+        (_, ymin), (_, ymax) = self._schematic.boundingbox()
+        ytop, ybot = ymax+20, ymin-20
         return '''DEF %(name)s %(refdes)s 0 0 %(show_pins)s %(show_pins)s 1 F %(kind)s
 F0 "%(refdes)s" 0 %(refdes_y)d 50 H %(refdes_show)s C %(refdes_align)sNN
-F1 "%(name)s" 0 %(name_y)d 50 H V C %(name_align)sNN
+F1 "%(name)s" 0 %(name_y)d 50 H %(name_show)s C %(name_align)sNN
 F2 "" 0 0 50 H I C CNN
 F3 "" 0 0 50 H I C CNN
 DRAW
@@ -209,13 +233,17 @@ ENDDEF''' % {
     'refdes': self._refdes,
     'show_pins': 'Y' if self._show_pin_text else 'N',
     'kind': 'P' if self._power_symbol else 'N',
-    'refdes_y': 0, # TODO: align
+    'refdes_y': ybot if self._flip_text else ytop,
     'refdes_show': 'I' if self._power_symbol else 'V',
-    'refdes_align': 'B', # TODO: align
-    'name_y': 0, # TODO: align
-    'name_align': 'T', # TODO: align
+    'refdes_align': 'T' if self._flip_text else 'B',
+    'name_y': ytop if self._flip_text else ybot,
+    'name_show': 'V' if self._show_name else 'I',
+    'name_align': 'B' if self._flip_text else 'T',
     'drawing': self._schematic.sch(),
 }
+
+    def footprints(self):
+        return dict(('%s_%s' % (self.name, f.name), f.footprint()) for f in self._footprints)
 
 class Pin(object):
     def __init__(self, numbers=[]):
@@ -437,7 +465,8 @@ class Schematic(object):
         def __call__(self, out, xform):
             x, y = self._pos
             a1, a2 = self._angles
-
+            xform.boundingbox(x-self._radius, y-self._radius)
+            xform.boundingbox(x+self._radius, y+self._radius)
             a, b = xform.coords(x, y)
             x1, y1 = xform.coords(x+(math.cos(math.radians(a1))*self._radius), y+(math.sin(math.radians(a1))*self._radius))
             x2, y2 = xform.coords(x+(math.cos(math.radians(a2))*self._radius), y+(math.sin(math.radians(a2))*self._radius))
@@ -481,6 +510,12 @@ class Schematic(object):
         for cmd in self._commands:
             cmd(out, xform)
         return '\n'.join(out)
+
+    def boundingbox(self):
+        out, xform = [], Transform()
+        for cmd in self._commands:
+            cmd(out, xform)
+        return (xform.x_min, xform.y_min), (xform.x_max, xform.y_max)
 
 class Footprint(object):
 

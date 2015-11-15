@@ -1,7 +1,7 @@
 import kidraw
 
 def vcc(l, name='VCC'):
-    d = l.device(name).refdes('#PWR').power_symbol().hide_pin_text()
+    d = l.device(name).refdes('#PWR').power_symbol().hide_pin_text().flip_text()
     d.pin(1).power()
     s = d.schematic()
     s.pin(1).len(50).dir(kidraw.UP)
@@ -19,12 +19,12 @@ def gnd(l, name='GND'):
     return d
     
 def power_flag(l):
-    d = l.device('PWR_FLAG').refdes('#FLG').power_symbol().hide_pin_text()
+    d = l.device('PWR_FLAG').refdes('#FLG').power_symbol().hide_pin_text().hide_name()
     d.pin(1).power_flag()
     s = d.schematic()
     s.pin(1).len(25).dir(kidraw.UP)
     s.line((0, 25), (100, 75), (0, 125), (-100, 75), (0, 25))
-    s.text((0, 0), 'PWR')
+    s.text((0, 75), 'PWR').font_size(40)
     return d
 
 def _passive_2terminal(l, name, refdes):
@@ -51,15 +51,15 @@ def capacitor(l, polarized=False):
     s = d.schematic()
     s.pin(1).pos(-100, 0).len(90).dir(kidraw.RIGHT)
     s.pin(2).pos(100, 0).len(90).dir(kidraw.LEFT)
-    s.line((-10, -30), (-10, 30), width=10)
-    s.line((10, -30), (10, 30), width=10)
+    s.line((-10, -30), (-10, 30)).width(10)
+    s.line((10, -30), (10, 30)).width(10)
     if polarized:
-        s.line((20, 20), (30, 20), width=3)
-        s.line((25, 15), (25, 25), width=3)
+        s.line((20, 20), (30, 20)).width(3)
+        s.line((25, 15), (25, 25)).width(3)
     return d
 
 def inductor(l):
-    d = _passive_2terminal(l, 'Inductor', 'L')
+    d = _passive_2terminal(l, 'Inductor', 'L').hide_pin_text()
     s = d.schematic()
     s.pin(1).pos(-100, 0).len(20).dir(kidraw.RIGHT)
     s.pin(2).pos(100, 0).len(20).dir(kidraw.LEFT)
@@ -70,11 +70,11 @@ def inductor(l):
     return d
 
 def _diode(l, name, refdes='D'):
-    d = _passive_2terminal(l, name, refdes)
+    d = _passive_2terminal(l, name, refdes).hide_pin_text().hide_name()
     s = d.schematic()
     s.pin(1).pos(-100, 0).len(100).dir(kidraw.RIGHT)
     s.pin(2).pos(100, 0).len(100).dir(kidraw.LEFT)
-    s.line((-25, -25), (25, 0), (-25, 25), filled=True)
+    s.line((-25, -25), (25, 0), (-25, 25)).filled()
     return d
 
 def diode(l):
@@ -108,20 +108,20 @@ def led(l):
     return d
 
 def _bjt(l, name='Transistor'):
-    d = l.device(name).refdes('Q').hide_pin_text()
+    d = l.device(name).refdes('Q').hide_pin_text().hide_name()
     s = d.schematic()
-    s.circle(0, 0, 70)
+    s.circle((0, 0), 70)
     s.line((-20, -50), (-20, 50)).width(10)
     # Base
     s.line((-100, 0), (-20, 0))
-    s.text(-90, -10, "B").font_size(20).halign(kidraw.RIGHT).valign(kidraw.UP)
+    s.text((-95, -20), "B").font_size(20).halign(kidraw.LEFT).valign(kidraw.UP)
     # Collector/Emitter
     s.line((-20, 30), (50, 65))
     s.line((50, 65), (50, 100))
-    s.text(60, 100, "C").font_size(20).halign(kidraw.LEFT).valign(kidraw.UP)
+    s.text((60, 100), "C").font_size(20).halign(kidraw.LEFT).valign(kidraw.UP)
     s.line((-20, -30), (50, -65))
     s.line((50, -65), (50, -100))
-    s.text(60, -100, "E").font_size(20).halign(kidraw.LEFT).valign(kidraw.DOWN)
+    s.text((60, -100), "E").font_size(20).halign(kidraw.LEFT).valign(kidraw.DOWN)
     return d
 
 def bipolar_transistor_npn(l):
@@ -133,13 +133,13 @@ def bipolar_transistor_npn(l):
         s.line((60, 0), (30, 10), (30, -10)).width(3).filled()
     return d
 
-def bipolar_transistor_pnp():
+def bipolar_transistor_pnp(l):
     d = _bjt(l, name='PNP Bipolar Transistor')
     s = d.schematic()
     with s.save_position():
-           s.translate(-20, -30)
-           s.rotate(26.56)
-           s.line((20, 0), (50, 10), (50, -10)).width(3).filled()
+        s.translate(-20, -30)
+        s.rotate(26.56)
+        s.line((20, 0), (50, 10), (50, -10)).width(3).filled()
     return d
 
 # TODO: JFETs? mosfets?

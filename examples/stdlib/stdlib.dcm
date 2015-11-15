@@ -1,60 +1,48 @@
 EESchema-DOCLIB  Version 2.0
 #
-$CMP Resistor
-D 
-$ENDCMP
-$CMP Capacitor
-D 
-$ENDCMP
-$CMP Capacitor_(Polarized)
-D 
-$ENDCMP
-$CMP Inductor
-D 
-$ENDCMP
-$CMP Diode
-D 
-$ENDCMP
-$CMP Diode_(Zener)
-D 
-$ENDCMP
-$CMP Diode_(Schottky)
-D 
-$ENDCMP
-$CMP LED
-D 
-$ENDCMP
-$CMP VCC
-D 
-$ENDCMP
-$CMP +12V
-D 
-$ENDCMP
-$CMP GND
-D 
+$CMP +5V
+D +5V
 $ENDCMP
 $CMP AGND
-D 
+D AGND
+$ENDCMP
+$CMP Capacitor
+D Capacitor
+$ENDCMP
+$CMP Capacitor_(Polarized)
+D Capacitor (Polarized)
+$ENDCMP
+$CMP Diode
+D Diode
+$ENDCMP
+$CMP GND
+D GND
+$ENDCMP
+$CMP Inductor
+D Inductor
+$ENDCMP
+$CMP LED
+D LED
+$ENDCMP
+$CMP NPN_Bipolar_Transistor
+D NPN Bipolar Transistor
+$ENDCMP
+$CMP PNP_Bipolar_Transistor
+D PNP Bipolar Transistor
 $ENDCMP
 $CMP PWR_FLAG
-D 
+D PWR_FLAG
 $ENDCMP
-$CMP BJT_(NPN)
-D 
+$CMP Resistor
+D Resistor
 $ENDCMP
-$CMP BJT_(PNP)
-D 
+$CMP Schottky_Diode
+D Schottky Diode
 $ENDCMP
-$CMP JFET_(N-Channel)
-D 
+$CMP VCC
+D VCC
 $ENDCMP
-$CMP JFET_(P-Channel)
-D 
-$ENDCMP
-$CMP MOSFET_(N-Channel)
-D 
-$ENDCMP
-$CMP MOSFET_(P-Channel)
-D 
+$CMP Zener_Diode
+D Zener Diode
 $ENDCMP
 #End Doc Library

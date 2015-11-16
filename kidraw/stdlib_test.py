@@ -10,6 +10,7 @@ class TestStdlib(unittest.TestCase):
         std.gnd(l)
         std.gnd(l, 'AGND')
         std.power_flag(l)
+        std.test_point(l)
         
         std.resistor(l)
         std.capacitor(l)

@@ -27,6 +27,14 @@ def power_flag(l):
     s.text((0, 75), 'PWR').font_size(40)
     return d
 
+def test_point(l):
+    d = l.device('Test Point').refdes('TP').hide_pin_text().hide_name()
+    d.pin(1).passive()
+    s = d.schematic()
+    s.pin(1)
+    s.circle((0, 0), 20)
+    return d
+
 def _passive_2terminal(l, name, refdes):
     d = l.device(name).refdes(refdes).hide_pin_text()
     d.pin(1).passive()

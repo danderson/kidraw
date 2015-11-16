@@ -331,7 +331,10 @@ class Schematic(object):
         self._commands.append(lambda _, xform: xform.pop())
 
     ###
-        
+
+    def clear(self):
+        self._commands = []
+    
     class _Line(object):
         def __init__(self, points):
             self._points = points

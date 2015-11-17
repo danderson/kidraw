@@ -76,8 +76,8 @@ class ICBuilder(object):
             kidraw.DOWN: [f for f in self._features if f.dir == kidraw.DOWN],
         }
         nslots = dict((k, len(v)) for k, v in features.items())
-        slots_wide = max(nslots[kidraw.UP], nslots[kidraw.DOWN])
-        slots_high = max(nslots[kidraw.RIGHT], nslots[kidraw.LEFT])
+        slots_wide = max(nslots[kidraw.UP], nslots[kidraw.DOWN])-1
+        slots_high = max(nslots[kidraw.RIGHT], nslots[kidraw.LEFT])-1
         margin = self._slot_spacing
         # TODO: muck about with the expandos to center
         with s.save_position():

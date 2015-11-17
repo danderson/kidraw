@@ -1,8 +1,12 @@
+from __future__ import with_statement
+from __future__ import absolute_import
 import contextlib
 import enum
 import math
 import shutil
 import os.path
+from itertools import izip
+from io import open
 
 RIGHT = 'R'
 LEFT = 'L'
@@ -20,16 +24,16 @@ class Transform(object):
         self._y_minmax = (0, 0)
 
     def _vecmult(self, a, b):
-        return sum(float(x)*float(y) for x,y in zip(a, b))
+        return sum(float(x)*float(y) for x,y in izip(a, b))
         
     def _mult(self, new):
         old = self._xform
-        new = list(zip(*new))
+        new = list(izip(*new))
         self._xform = [[0, 0, 0],
                        [0, 0, 0],
                        [0, 0, 0]]
-        for row in range(3):
-            for col in range(3):
+        for row in xrange(3):
+            for col in xrange(3):
                 self._xform[row][col] = self._vecmult(old[row], new[col])
 
     def translate(self, x, y):
@@ -677,7 +681,7 @@ class Footprint(object):
 
     class _Text(_Feature):
         def __init__(self, typ, txt):
-            super().__init__()
+            super(_Text, self).__init__()
             self._typ = typ
             self._text = txt
             self._pos = (0, 0)
@@ -720,7 +724,7 @@ class Footprint(object):
 
     class _Line(_Feature):
         def __init__(self, start, end):
-            super().__init__()
+            super(_Line, self).__init__()
             self._start = start
             self._end = end
 
@@ -736,7 +740,7 @@ class Footprint(object):
 
     class _Circle(_Feature):
         def __init__(self, center, radius):
-            super().__init__()
+            super(_Circle, self).__init__()
             self._center = center
             self._radius = radius
             

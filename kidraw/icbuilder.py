@@ -1,3 +1,6 @@
+from __future__ import with_statement
+from __future__ import division
+from __future__ import absolute_import
 import kidraw
 
 class ICBuilder(object):
@@ -31,7 +34,7 @@ class ICBuilder(object):
             
     class _Pin(_Feature):
         def __init__(self, numbers, dir):
-            super().__init__(dir=dir, num_slots=1)
+            super(_Pin, self).__init__(dir=dir, num_slots=1)
             self._numbers = numbers
             self._active_low = False
             self._clock = False

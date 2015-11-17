@@ -6,7 +6,6 @@ import math
 import shutil
 import os.path
 from itertools import izip
-from io import open
 
 RIGHT = 'R'
 LEFT = 'L'
@@ -131,15 +130,15 @@ class Library(object):
         return out
 
     def write(self, filename_base):
-        with open(filename_base+'.lib', 'w') as f:
-            f.write(self.schematic_lib())
-        with open(filename_base+'.dcm', 'w') as f:
-            f.write(self.schematic_doc())
         if os.path.isdir(filename_base):
             shutil.rmtree(filename_base)
         os.makedirs(filename_base)
+        with open('%s/%s.lib' % (filename_base, filename_base), 'w') as f:
+            f.write(self.schematic_lib())
+        with open('%s/%s.dcm' % (filename_base, filename_base), 'w') as f:
+            f.write(self.schematic_doc())
         for name, footprint in self.footprint_lib():
-            with open(os.path.join(filename_base, name+'.kicad_mod'), 'w') as f:
+            with open('%s/%s.kicad_mod' % (filename_base, name), 'w') as f:
                 f.write(footprint)
 
 class Device(object):

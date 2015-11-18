@@ -4,17 +4,19 @@ import kidraw
 
 def vcc(l, name='VCC'):
     d = l.device(name).refdes('#PWR').power_symbol().hide_pin_text().flip_text()
-    d.pin(1).power()
+    d.pin(1).name(name).power()
     s = d.schematic()
-    s.pin(1).len(50).dir(kidraw.UP)
+    s.pin(1).hidden()
+    s.line((0, 0), (0, 50))
     s.line((-50, 50), (50, 50))
     return d
 
 def gnd(l, name='GND'):
     d = l.device(name).refdes('#PWR').power_symbol().hide_pin_text()
-    d.pin(1).power()
+    d.pin(1).name(name).power()
     s = d.schematic()
-    s.pin(1).len(50).dir(kidraw.DOWN)
+    s.pin(1).hidden()
+    s.line((0, 0), (0, -50))
     s.line((-50, -50), (50, -50))
     s.line((-25, -75), (25, -75))
     s.line((-5, -100), (5, -100))
@@ -22,9 +24,10 @@ def gnd(l, name='GND'):
     
 def power_flag(l):
     d = l.device('PWR_FLAG').refdes('#FLG').power_symbol().hide_pin_text().hide_name()
-    d.pin(1).power_flag()
+    d.pin(1).name('pwr').power_flag()
     s = d.schematic()
-    s.pin(1).len(25).dir(kidraw.UP)
+    s.pin(1).hidden()
+    s.line((0, 0), (0, 25))
     s.line((0, 25), (100, 75), (0, 125), (-100, 75), (0, 25))
     s.text((0, 75), 'PWR').font_size(40)
     return d

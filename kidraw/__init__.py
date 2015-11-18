@@ -124,7 +124,7 @@ class Library(object):
     def footprint_lib(self):
         out = []
         for d in self._devs():
-            for n, fp in d.footprints():
+            for n, fp in d.footprints().items():
                 out.append((n, fp))
         return out
 
@@ -246,7 +246,7 @@ ENDDEF''' % {
 }
 
     def footprints(self):
-        return dict(('%s_%s' % (self.name, f.name), f.footprint()) for f in self._footprints)
+        return dict(('%s_%s' % (self.name, f.name), f.footprint()) for f in self._footprints.values())
 
 class Pin(object):
     def __init__(self, numbers=[]):
@@ -617,7 +617,7 @@ class Footprint(object):
             return self
 
         def test_point(self):
-            self._type = 'connector'
+            self._type = 'connect'
             self._drill = None
             return self
         connector = test_point
@@ -664,7 +664,7 @@ class Footprint(object):
             out.append('(pad %s %s %s' % (self._number, self._type, shape))
             out.append('(at %d %d)' % xform.coords(*self._pos))
             out.append('(size %d %d)' % self._size)
-            if self._type == 'smd' or self._type == 'connector':
+            if self._type == 'smd' or self._type == 'connect':
                 out.append('(layers F.Cu F.Paste F.Mask F.SilkS)')
             else:
                 out.append('(layers *.Cu *.Mask F.SilkS)')
@@ -688,12 +688,13 @@ class Footprint(object):
 
     class _Text(_Feature):
         def __init__(self, typ, txt):
-            super(_Text, self).__init__()
+            super(Footprint._Text, self).__init__()
             self._typ = typ
             self._text = txt
             self._pos = (0, 0)
             self._size = None
             self._thickness = None
+            self._hidden = False
 
         def pos(self, x, y):
             self._pos = (x, y)
@@ -707,10 +708,15 @@ class Footprint(object):
             self._thickness = t
             return self
 
+        def hidden(self):
+            self._hidden = True
+
         def __call__(self, out, xform):
             out.append('(fp_text %s "%s"' % (self._typ, self._text))
             out.append('(at %d %d)' % xform.coords(*self._pos))
             out.append('(layer F.SilkS)')
+            if self._hidden:
+                out.append('hide')
             if self._size is not None or self._thickness is not None:
                 out.append('(effects (font ')
                 if self._size is not None:
@@ -731,7 +737,7 @@ class Footprint(object):
 
     class _Line(_Feature):
         def __init__(self, start, end):
-            super(_Line, self).__init__()
+            super(Footprint._Line, self).__init__()
             self._start = start
             self._end = end
 
@@ -747,7 +753,7 @@ class Footprint(object):
 
     class _Circle(_Feature):
         def __init__(self, center, radius):
-            super(_Circle, self).__init__()
+            super(Footprint._Circle, self).__init__()
             self._center = center
             self._radius = radius
             

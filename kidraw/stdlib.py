@@ -38,6 +38,10 @@ def test_point(l):
     s = d.schematic()
     s.pin(1)
     s.circle((0, 0), 20)
+    f = d.footprint('SMD')
+    f.pad(1).test_point().circle(2)
+    f.refdes().pos(0, 2)
+    f.value().hidden()
     return d
 
 def _passive_2terminal(l, name, refdes):

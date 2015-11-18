@@ -10,7 +10,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='kidraw',
-    version='1',
+    version='2',
     description='Construct Kicad schematic and footprint libraries programmatically',
     long_description=long_description,
     url='https://github.com/danderson/kidraw',

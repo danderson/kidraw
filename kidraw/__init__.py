@@ -5,7 +5,6 @@ import enum
 import math
 import shutil
 import os.path
-from itertools import izip
 
 RIGHT = 'R'
 LEFT = 'L'
@@ -23,16 +22,16 @@ class Transform(object):
         self._y_minmax = (0, 0)
 
     def _vecmult(self, a, b):
-        return sum(float(x)*float(y) for x,y in izip(a, b))
+        return sum(float(x)*float(y) for x,y in zip(a, b))
         
     def _mult(self, new):
         old = self._xform
-        new = list(izip(*new))
+        new = list(zip(*new))
         self._xform = [[0, 0, 0],
                        [0, 0, 0],
                        [0, 0, 0]]
-        for row in xrange(3):
-            for col in xrange(3):
+        for row in range(3):
+            for col in range(3):
                 self._xform[row][col] = self._vecmult(old[row], new[col])
 
     def translate(self, x, y):
@@ -236,6 +235,7 @@ ENDDEF''' % {
     'refdes': self._refdes,
     'show_pins': 'Y' if self._show_pin_text else 'N',
     'kind': 'P' if self._power_symbol else 'N',
+    'power_hash': '#' if self._power_symbol else '',
     'refdes_y': ybot if self._flip_text else ytop,
     'refdes_show': 'I' if self._power_symbol else 'V',
     'refdes_align': 'T' if self._flip_text else 'B',
@@ -426,6 +426,10 @@ class Schematic(object):
             self._shape = 'C'
             return self
 
+        def hidden(self):
+            self._shape = 'N'
+            return self
+        
         def __call__(self, out, xform):
             x, y = self._pos
             xform.boundingbox(x, y)
@@ -439,6 +443,10 @@ class Schematic(object):
                 xform.boundingbox(x, y-self._len)
             x, y = xform.coords(x, y)
             out.append('X %s %d %d %d %d %s %d %d 0 1 %s %s' % (self._pin_ref._name, self._number, x, y, self._len, self._dir, self._font_size, self._font_size, self._pin_ref._type, self._shape))
+            for n in self._pin_ref.numbers:
+                if n == self._number:
+                    continue
+                out.append('X ~ %d %d %d 0 U 0 0 0 1 %s N' % (n, x, y, self._pin_ref._type))
 
     def pin(self, *numbers):
         numbers = set(numbers)

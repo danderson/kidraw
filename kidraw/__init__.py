@@ -625,22 +625,21 @@ class Footprint(object):
         ## Pad shape
         
         def rect(self, w, h):
+            self._shape = 'rect'
             self._size = (w, h)
             return self
 
         def circle(self, r):
+            self._shape = 'circle'
             self._size = (r, r)
             return self
 
         def oval(self, w, h):
+            self._shape = 'oval'
             self._size = (w, h)
             return self
 
         ## Misc
-
-        def drill(self, size):
-            self._drill = size
-            return self
 
         def mask_margin(self, m):
             self._mask_margin = m
@@ -662,23 +661,23 @@ class Footprint(object):
         def __call__(self, out, xform):
             shape = self._shape or ('rect' if self._smd else 'circle')
             out.append('(pad %s %s %s' % (self._number, self._type, shape))
-            out.append('(at %d %d)' % xform.coords(*self._pos))
-            out.append('(size %d %d)' % self._size)
+            out.append('(at %f %f)' % xform.fcoords(*self._pos))
+            out.append('(size %f %f)' % self._size)
             if self._type == 'smd' or self._type == 'connect':
                 out.append('(layers F.Cu F.Paste F.Mask F.SilkS)')
             else:
                 out.append('(layers *.Cu *.Mask F.SilkS)')
-                out.append('(drill %d)' % self._drill)
+                out.append('(drill %f)' % self._drill)
             if self._mask_margin is not None:
-                out.append('(solder_mask_margin %d)' % self._mask_margin)
+                out.append('(solder_mask_margin %f)' % self._mask_margin)
             if self._paste_margin is not None:
-                out.append('(solder_paste_margin %d)' % self._paste_margin)
+                out.append('(solder_paste_margin %f)' % self._paste_margin)
             if self._clearance is not None:
-                out.append('(clearance %d)' % self._clearance)
+                out.append('(clearance %f)' % self._clearance)
             if self._thermal_width is not None:
                 out.append('(zone_connect 1)')
-                out.append('(thermal_width %d)' % self._thermal_width)
-                out.append('(thermal_gap %d)' % self._thermal_gap)
+                out.append('(thermal_width %f)' % self._thermal_width)
+                out.append('(thermal_gap %f)' % self._thermal_gap)
             out.append(')')
 
     def pad(self, number):
@@ -713,16 +712,16 @@ class Footprint(object):
 
         def __call__(self, out, xform):
             out.append('(fp_text %s "%s"' % (self._typ, self._text))
-            out.append('(at %d %d)' % xform.coords(*self._pos))
-            out.append('(layer F.SilkS)')
+            out.append('(at %f %f)' % xform.fcoords(*self._pos))
+            out.append('(layer %s.%s)' % (self._side, self._layer))
             if self._hidden:
                 out.append('hide')
             if self._size is not None or self._thickness is not None:
                 out.append('(effects (font ')
                 if self._size is not None:
-                    out.append('(size %d %d)' % self._size)
+                    out.append('(size %f %f)' % self._size)
                 if self._thickness is not None:
-                    out.append('(thickness %d)' % self._thickness)
+                    out.append('(thickness %f)' % self._thickness)
                 out.append(') )')
             out.append(')')
             
@@ -742,10 +741,11 @@ class Footprint(object):
             self._end = end
 
         def __call__(self, out, xform):
-            out.append('(fp_line (layer F.SilkS)')
-            out.append('(start %d %d)' % xform.coords(*self._start))
-            out.append('(end %d %d)' % xform.coords(*self._end))
-            out.append('(width %d)' % self._width)
+            out.append('(fp_line')
+            out.append('(start %f %f)' % xform.fcoords(*self._start))
+            out.append('(end %f %f)' % xform.fcoords(*self._end))
+            out.append('(layer %s.%s)' % (self._side, self._layer))
+            out.append('(width %f)' % self._width)
             out.append(')')
 
     def line(self, start, end):
@@ -758,10 +758,11 @@ class Footprint(object):
             self._radius = radius
             
         def __call__(self, out, xform):
-            out.append('(fp_circle (layer F.SilkS)')
-            out.append('(center %d %d)' % xform.coords(*self._center))
-            out.append('(end %d %d)' % xform.coords(self._center[0]+self._radius, self._center[1]))
-            out.append('(width %d)' % self._width)
+            out.append('(fp_circle')
+            out.append('(center %f %f)' % xform.fcoords(*self._center))
+            out.append('(end %f %f)' % xform.fcoords(self._center[0]+self._radius, self._center[1]))
+            out.append('(layer %s.%s)' % (self._side, self._layer))
+            out.append('(width %f)' % self._width)
             out.append(')')
 
     def circle(self, center, r):
@@ -776,11 +777,11 @@ class Footprint(object):
     def footprint(self):
         out, xform = [], Transform()
         if self._mask_margin is not None:
-            out.append('(solder_mask_margin %d)' % self._mask_margin)
+            out.append('(solder_mask_margin %f)' % self._mask_margin)
         if self._paste_margin is not None:
-            out.append('(solder_paste_margin %d)' % self._paste_margin)
+            out.append('(solder_paste_margin %f)' % self._paste_margin)
         if self._clearance is not None:
-            out.append('(clearance %d)' % self._clearance)
+            out.append('(clearance %f)' % self._clearance)
         for cmd in self._commands:
             cmd(out, xform)
         draw = ' '.join(out)

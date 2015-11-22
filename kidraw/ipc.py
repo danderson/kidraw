@@ -1,11 +1,11 @@
-"""Compute SMD land pattern dimensions based on IPC-7351-B.
+"""Compute SMD land pattern dimensions based on IPC-7351B.
 
 This module is deliberately decoupled from kidraw's drawing routines,
 so that the output of the math can be reused by other projects if
 desired.
 
 In all docstrings for this module, "the Standard" refers to
-IPC-7351-B.
+IPC-7351B.
 """
 
 from __future__ import division, print_function

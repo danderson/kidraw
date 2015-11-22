@@ -18,7 +18,7 @@ import math
 # (min, max) interval to account for manufacturing tolerances (except
 # for pin pitch, which is just given as a single nominal value).
 
-class ComponentDimension(object):
+class Dimension(object):
     """A component dimension, defined as a min-max interval."""
     def __init__(self, min, max):
         self.min, self.max = min, max
@@ -43,7 +43,7 @@ class ComponentDimension(object):
 # between pin heels. Component's constructor calculates that.
 
 class Component(object):
-    """Records and calculates ComponentDimensions."""
+    """Records and calculates Dimensions for a component."""
     def __init__(self, A, L, T, W, B=None, H=None, pitch=None):
         self.d = {
             'A': A,
@@ -64,8 +64,9 @@ class Component(object):
         # the root mean square of the tolerances and tightening S's
         # min and max.
         tolRMS = math.sqrt(L.tolerance**2 + T.tolerance**2)
-        S.min += tolRMS/2
-        S.max -= tolRMS/2
+        half_rms = _rms(L.tolerance, T.tolerance)/2
+        S.min += half_rms
+        S.max -= half_rms
         self.d['S'] = S
 
     def __getattr__(self, k):
@@ -73,7 +74,7 @@ class Component(object):
             return self.d[k]
         super(Component, self).__getattr__(k)
 
-class Protrusion(enum.Enum):
+class ProtrusionProfile(enum.Enum):
     """How far the pads protrudes from under the pins.
 
     The Standard defines three protrusion levels of decreasing size,
@@ -82,9 +83,7 @@ class Protrusion(enum.Enum):
     manufacturing yields.
 
     In particular, hand-soldered boards are strongly encouraged to use
-    the "Most" protrusion, or "Nominal" if needed. Do not use "Least"
-    for hand-soldering, as some land patterns are almost entirely
-    under the component with that profile.
+    the "Most" protrusion.
 
     """
     Most = 0
@@ -102,6 +101,12 @@ class LandProfile(object):
     dimensions like the pin pitch or the shape of the pins. As such,
     some classmethod constructors take a Component as input so they
     can tune values as needed.
+
+    Constructors that don't need a Component still accept one to make
+    dynamic invocation easier, but can be identified by the fact that
+    they provide a default value of None, signifying that they don't
+    care.
+
     '''
 
     def __init__(self, toe, heel, side, courtyard, rounding_increment=0.5):
@@ -116,6 +121,12 @@ class LandProfile(object):
 
     @classmethod
     def gullwing_leads(cls, protrusion, component):
+        '''Gull wing or outward-facing L leads.
+
+        This profile notably covers the ICs in the SOIC, SOP, SOT, SOD
+        and QFP families.
+
+        '''
         toe = [0.55, 0.35, 0.15]
         heel = [0.45, 0.35, 0.25]
         side = [0.05, 0.03, 0.01]
@@ -128,6 +139,12 @@ class LandProfile(object):
 
     @classmethod
     def J_leads(cls, protrusion, component=None):
+        '''J leads, bending back under the component.
+
+        This profile notably covers the ICs in the PLCC and SOJ
+        families.
+
+        '''
         # Note: because J-leads bend backwards, the heel is used to
         # calculate the outer pattern dimension, and the toe for the
         # inner dimension. Thus, what we pass as the "toe" argument to
@@ -142,6 +159,14 @@ class LandProfile(object):
 
     @classmethod
     def inward_L_leads(cls, protrusion, component=None):
+        '''L leads, bending back under the component.
+
+        This profile notably covers the "molded body" family of
+        capacitors, inductors and diodes - for example Vishay's TR3
+        series of tantalum capacitors.
+
+        '''
+
         # Like the J leads, heel and toe dimensions are flipped.
         return cls([0.25, 0.15, 0.07][protrusion],
                    [0.8, 0.5, 0.2][protrusion],
@@ -150,6 +175,13 @@ class LandProfile(object):
 
     @classmethod
     def chip(cls, protrusion, component):
+        '''2-terminal chip components.
+
+        This profile notably covers devices whose packages are named
+        after their physical dimensions: 0603, 2012 (0805 imperial),
+        and so forth.
+
+        '''
         toe = [0.55, 0.35, 0.15]
         side = [0.05, 0, -0.05]
         courtyard = [0.5, 0.25, 0.1]
@@ -164,6 +196,13 @@ class LandProfile(object):
 
     @classmethod
     def chip_array(cls, protrusion, component=None):
+        '''Leadless terminal arrays.
+
+        This specifically covers arrays of passives that come in
+        "Concave Chip Array", "Convex Chip Array", or "Flat Chip
+        Array" packages.
+
+        '''
         return cls([0.55, 0.45, 0.35][protrusion],
                    [-0.05, -0.07, -0.10][protrusion],
                    [-0.05, -0.07, -0.10][protrusion],
@@ -174,6 +213,13 @@ class LandProfile(object):
 
     @classmethod
     def electrolytic_capacitor(cls, protrusion, component):
+        '''Electrolytic SMD capacitor on a notched rectangular base.
+
+        This covers a single package type that most SMD electrolytics
+        come as. For example, the Vishay 140 CRH family uses this
+        package.
+
+        '''
         toe = [0.7, 0.5, 0.3]
         heel = [0, -0.1, -0.2]
         side = [0.5, 0.4, 0.3]
@@ -188,13 +234,29 @@ class LandProfile(object):
 
     @classmethod
     def DIP_I_mount(cls, protrusion, component=None):
+        '''Butt-mounted DIP packages.
+
+        The Standard specifies a technique for surface-mounting DIP
+        packages: cut the leads flush with the bottom of the DIP body,
+        and solder the remaining vertical lead to a large SMD pad.
+
+        This is very esoteric, but a very small number of components
+        come direct from the factory in "DIP butt joint" packaging,
+        with the DIP leads pre-cut.
+
+        '''
         return cls([1.0, 0.8, 0.6][protrusion],
                    [1.0, 0.8, 0.6][protrusion],
                    [0.3, 0.2, 0.1][protrusion],
                    [1.5, 0.8, 0.2][protrusion])
 
     @classmethod
-    def TO_package(cls, protrusion, component=None):
+    def TO252_package(cls, protrusion, component=None):
+        '''Surface-mount DPAK/TO-252 package.
+
+        This profile can also be used for DDPAK/TO-263 packages.
+
+        '''
         return cls([0.55, 0.35, 0.15][protrusion],
                    [0.45, 0.35, 0.25][protrusion],
                    [0.05, 0.03, 0.01][protrusion],
@@ -202,6 +264,11 @@ class LandProfile(object):
 
     @classmethod
     def QFN(cls, protrusion, component=None):
+        '''Leadless IC packages with pads only on the bottom.
+
+        This covers all QFN and SON packages.
+
+        '''
         return cls([0.4, 0.3, 0.2][protrusion],
                    0
                    -0.04
@@ -210,6 +277,7 @@ class LandProfile(object):
 
     @classmethod
     def MELF(cls, protrusion, component=None):
+        '''MELF/DO-213 package.'''
         return cls([0.6, 0.4, 0.2][protrusion],
                    [0.2, 0.1, 0.02][protrusion],
                    [0.1, 0.05, 0.01][protrusion],
@@ -217,6 +285,12 @@ class LandProfile(object):
 
     @classmethod
     def LCC(cls, protrusion, component=None):
+        '''LCC package.
+
+        Careful, this is not PLCC! LCC packages are leadless and a
+        closer relative of QFN.
+
+        '''
         # Like j_leads, heel and toe are swapped here.
         return cls([0.65, 0.55, 0.45][protrusion],
                    [0.25, 0.15, 0.05][protrusion],
@@ -225,6 +299,7 @@ class LandProfile(object):
 
     @classmethod
     def SODFL(cls, protrusion, component=None):
+        '''Small outline flat lead diode/transistor.'''
         return cls([0.3, 0.2, 0.1][protrusion],
                    0,
                    [0.05, 0, -0.05][protrusion],
@@ -269,6 +344,13 @@ def _round_up(x, increment):
     return _round_down(x, increment) + increment
 
 class Footprint(object):
+    '''Holds the critical dimensions of a PCB land pattern.
+
+    Given the combination of a Component and a LandProfile, this class
+    calculates the critical dimensions for the land pattern, and
+    offers some helpers for pad placement.
+
+    '''
     def __init__(self, component, land_profile, pcb_manufacturing_tolerance=0.1, part_placement_tolerance=0.05):
         self.component = component
         self.profile = profile
@@ -291,16 +373,23 @@ class Footprint(object):
                                 part_placement_tolerance),
                            land_profile.rounding_increment)
 
-        # TODO: this is wrong, need to account for pads along the
-        # top/bottom, which implies knowledge of pin count in
-        # Component.
-        
-        self.courtyard_width = _round_up(
-            max(self.Z, component.L) + 2*land_profile.courtyard,
-            land_profile.rounding_increment)
+    def courtyard(self, w, h):
+        '''Calculate courtyard dimensions based on component bounding box.
 
-        self.courtyard_height = _round_up(
-            component.B.max +
-            max(component.W.min, self.X) - component.W.min +
-            2*land_profile.courtyard,
-            land_profile.rounding_increment)
+        The Standard specifies a "courtyard excess" margin all around
+        the land pattern. However, the "critical dimension" varies
+        depending on the footprint - it can either be dictated by the
+        pads (as with most QFPs), or by the component body (as with
+        pullback QFNs).
+
+        Once you have drawn the land pattern and determined the
+        critical width and height dimensions, this function will give
+        you the width and height of the courtyard.
+        '''
+        # TODO: this is an ugly way to go about it. A much nicer way
+        # would be to draw the entire component for the user - in the
+        # form of abstract draw commands. Then we can reason about the
+        # courtyard ourselves without requiring the user to figure out
+        # critical dimensions and whatnot.
+        return (_round_up(w + 2*self.land_profile.courtyard_excess),
+                _round_up(h + 2*self.land_profile.courtyard_excess))

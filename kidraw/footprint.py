@@ -2,6 +2,8 @@ import math
 from copy import deepcopy
 from enum import Enum
 
+from kidraw import ipc
+
 class Layer(Enum):
     TopCopper = 'F.Cu'
     TopSilkscreen = 'F.SilkS'
@@ -234,3 +236,44 @@ class Footprint(_Struct):
 {0.value}
 {1}
 )'''.format(self, '\n'.join(str(f) for f in self.features))
+
+def features_from_ipc(features):
+    """Translate a kicad.ipc footprint into Footprint features."""
+    ret = []
+    for f in features:
+        if isinstance(f, ipc.Drawing.Pad):
+            ret.append(SurfaceMountPad(
+                name=f.number,
+                shape=PadShape.Rectangle if f.number == 1 else PadShape.Obround,
+                center=f.center,
+                size=f.size))
+        elif isinstance(f, ipc.Drawing.Line):
+            layer = {
+                ipc.Drawing.Layer.Silkscreen: Layer.TopSilkscreen,
+                ipc.Drawing.Layer.Courtyard: Layer.TopCourtyard,
+                ipc.Drawing.Layer.Assembly: Layer.TopAssembly,
+                ipc.Drawing.Layer.Documentation: Layer.TopAssembly,
+            }[f.layer]
+            for a, b in zip(f.points, f.points[1:]):
+                ret.append(Line(
+                    start=a,
+                    end=b,
+                    layer=layer,
+                    line_width=f.width))
+        elif isinstance(f, ipc.Drawing.Circle):
+            layer = {
+                ipc.Drawing.Layer.Silkscreen: Layer.TopSilkscreen,
+                ipc.Drawing.Layer.Courtyard: Layer.TopCourtyard,
+                ipc.Drawing.Layer.Assembly: Layer.TopAssembly,
+                ipc.Drawing.Layer.Documentation: Layer.TopAssembly,
+            }[f.layer]
+            # Hack: to draw a filled circle, we draw a zero-length
+            # line of width == diameter.
+            ret.append(Line(
+                start=f.center,
+                end=f.center,
+                layer=layer,
+                line_width=2*f.radius))
+        else:
+            raise ValueError('Unknown IPC footprint feature type', type(f))
+    return ret

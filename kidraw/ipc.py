@@ -1,239 +1,570 @@
-"""Compute SMD land pattern dimensions based on IPC-7351B.
-
-This module is deliberately decoupled from kidraw's drawing routines,
-so that the output of the math can be reused by other projects if
-desired.
-
-In all docstrings for this module, "the Standard" refers to
-IPC-7351B.
-"""
-
-from __future__ import division, print_function
-import collections
-import enum
+from __future__ import division
+from collections import namedtuple
+from enum import Enum
 import math
 
-# The Standard starts out with the component for which you're
-# calculating a land pattern. All component dimensions are given as a
-# (min, max) interval to account for manufacturing tolerances (except
-# for pin pitch, which is just given as a single nominal value).
+def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
+    """Returns drawing for a 2-terminal symmetric device.
 
+    This is a generic footprint builder that will accept any
+    LandPatternSize.
+
+    If a polarized device is requested, pin 1 (the left-side pin) is
+    the positive pin for capacitors, or the cathode for
+    semiconductors.
+    """
+    Z, G = spec.OuterPadSpan(L, T), spec.InnerPadSpan(L, T)
+    pad_width = spec.PadWidth(W)
+    pad_length = (Z - G)/2
+    pad_center_x = (G + pad_length)/2
+    
+    ret = [
+        Drawing.Pad(number=1,
+                    center=(-pad_center_x, 0),
+                    size=(pad_length, pad_width)),
+        Drawing.Pad(number=2,
+                    center=(pad_center_x, 0),
+                    size=(pad_length, pad_width)),
+
+        # Origin mark
+        Drawing.Line(layer=Drawing.Layer.Documentation,
+                     points=[(-pad_width/2, 0), (pad_width/2, 0)],
+                     width=0.15),
+        Drawing.Line(layer=Drawing.Layer.Documentation,
+                     points=[(0, -pad_width/2), (0, pad_width/2)],
+                     width=0.15),
+
+        # Assembly outline
+        Drawing.Line(layer=Drawing.Layer.Assembly,
+                     points=[(-A.nominal/2, B.nominal/2),
+                             (-A.nominal/2, -B.nominal/2),
+                             (A.nominal/2, -B.nominal/2),
+                             (A.nominal/2, B.nominal/2),
+                             (-A.nominal/2, B.nominal/2),
+                     ],
+                     width=0.15),
+    ]
+
+    if L.nominal > A.nominal:
+        ret += [
+            Drawing.Line(layer=Drawing.Layer.Assembly,
+                         points=[(-A.nominal/2, W.nominal/2),
+                                 (-L.nominal/2, W.nominal/2),
+                                 (-L.nominal/2, -W.nominal/2),
+                                 (-A.nominal/2, -W.nominal/2),
+                         ],
+                         width=0.15),
+            Drawing.Line(layer=Drawing.Layer.Assembly,
+                         points=[(A.nominal/2, W.nominal/2),
+                                 (L.nominal/2, W.nominal/2),
+                                 (L.nominal/2, -W.nominal/2),
+                                 (A.nominal/2, -W.nominal/2),
+                         ],
+                         width=0.15),
+        ]
+
+    if B.nominal > pad_width:
+        # Silkscreen wraps around the pad side
+        x, y = A.nominal/2, B.nominal/2
+        ret += [
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(-x, y), (x, y)],
+                         width=0.15),
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(-x, -y), (x, -y)],
+                         width=0.15)
+        ]
+        v = pad_width/2 + 0.2
+        if v < y:
+            for xsign in (-1, 1):
+                for ysign in (-1, 1):
+                    ret.append(
+                        Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                                     points=[(xsign*x, ysign*v), (xsign*x, ysign*y)],
+                                     width=0.15))
+        if polarized:
+            ret.append(Drawing.Circle(
+                layer=Drawing.Layer.Silkscreen,
+                center=(-x-0.2, y),
+                radius=0.1))
+    else:
+        # Silkscreen is within the pads.
+        v = G/2 - 0.2
+        ret += [
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(-v, pad_width/2), (v, pad_width/2)],
+                         width=0.15),
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(-v, -pad_width/2), (v, -pad_width/2)],
+                         width=0.15),
+        ]
+        if polarized:
+            ret += [
+                Drawing.Line(
+                    layer=Drawing.Layer.Silkscreen,
+                    points=[(-v+0.075, pad_width/2), (-v+0.075, -pad_width/2)],
+                    width=0.3),
+                Drawing.Circle(
+                    layer=Drawing.Layer.Silkscreen,
+                    center=(-Z/2-0.2, 0),
+                    radius=0.1),
+            ]
+
+    _courtyard(ret, spec)
+    return ret
+
+def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, spec):
+    """Returns drawing for a dual/quad in-line symmetric device.
+
+    This is a generic footprint builder that will accept any
+    LandPatternSize.
+    """
+    ret = []
+
+    Zlr, Glr = spec.OuterPadSpan(LA, T), spec.InnerPadSpan(LA, T)
+    pad_lr_length = (Zlr - Glr)/2
+    pad_lr_center = (Glr + pad_lr_length)/2
+
+    Zud, Gud = spec.OuterPadSpan(LB, T), spec.InnerPadSpan(LB, T)
+    pad_ud_length = (Zud - Gud)/2
+    pad_ud_center = (Gud + pad_ud_length)/2
+
+    pad_width = spec.PadWidth(W)
+
+    def pin_line(pad_center, pad_size, pin_origin, pin_size, offset, number, count):
+        pad_center = list(pad_center)
+        pin_origin = list(pin_origin)
+        for n in range(number, number+count):
+            ret.extend([Drawing.Pad(number=n,
+                                    center=tuple(pad_center),
+                                    size=pad_size),
+                        Drawing.Line(layer=Drawing.Layer.Assembly,
+                                     points=[(pin_origin[0], pin_origin[1]),
+                                             (pin_origin[0]+pin_size[0], pin_origin[1]),
+                                             (pin_origin[0]+pin_size[0], pin_origin[1]+pin_size[1]),
+                                             (pin_origin[0], pin_origin[1]+pin_size[1]),
+                                             (pin_origin[0], pin_origin[1])],
+                                     width=0.15),
+                        ])
+            pad_center[0] += offset[0]
+            pad_center[1] += offset[1]
+            pin_origin[0] += offset[0]
+            pin_origin[1] += offset[1]
+
+    pin_line((-pad_lr_center, (pins_leftright/2-0.5)*pitch),
+             (pad_lr_length, pad_width),
+             (-A.nominal/2, (pins_leftright/2-0.5)*pitch + W.nominal/2),
+             (-(LA.nominal-A.nominal)/2, -W.nominal),
+             (0, -pitch),
+             1, pins_leftright)
+    pin_line((-(pins_updown/2-0.5)*pitch, -pad_ud_center),
+             (pad_width, pad_ud_length),
+             (-(pins_updown/2-0.5)*pitch - W.nominal/2, -B.nominal/2),
+             (W.nominal, -(LB.nominal-B.nominal)/2),
+             (pitch, 0),
+             pins_leftright+1, pins_updown)
+    pin_line((pad_lr_center, -(pins_leftright/2-0.5)*pitch),
+             (pad_lr_length, pad_width),
+             (A.nominal/2, -(pins_leftright/2-0.5)*pitch - W.nominal/2),
+             ((LA.nominal-A.nominal)/2, W.nominal),
+             (0, pitch),
+             pins_leftright+pins_updown+1, pins_leftright)
+    pin_line(((pins_updown/2-0.5)*pitch, pad_ud_center),
+             (pad_width, pad_ud_length),
+             ((pins_updown/2-0.5)*pitch + W.nominal/2, B.nominal/2),
+             (-W.nominal/2, (LB.nominal-B.nominal)/2),
+             (-pitch, 0),
+             pins_leftright+pins_updown+pins_leftright+1, pins_updown)
+
+    x, y = A.nominal/2, B.nominal/2
+    xstop, ystop = None, None
+    if pins_leftright > 0 and x > (Glr/2 - 0.15):
+        # Pull the left/right lines back to just a notch at the top
+        # and bottom.
+        ystop = (pins_leftright/2-0.5)*pitch + pad_width/2 + 0.15
+        assert ystop < y
+    if pins_updown > 0 and y > (Gud/2 - 0.15):
+        # Pull the top/bottom lines back to just a notch at the left
+        # and right.
+        xstop = (pins_updown/2-0.5)*pitch + pad_width/2 + 0.15
+        assert xstop < x
+
+    if ystop is None:
+        ret += [
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(-x, y), (-x, -y)],
+                         width=0.15),
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(x, y), (x, -y)],
+                         width=0.15),
+        ]
+    else:
+        ret += [
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(-x, y), (-x, ystop)],
+                         width=0.15),
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(-x, -y), (-x, -ystop)],
+                         width=0.15),
+
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(x, y), (x, ystop)],
+                         width=0.15),
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(x, -y), (x, -ystop)],
+                         width=0.15),
+        ]
+        
+    if xstop is None:
+        ret += [
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(-x, y), (x, y)],
+                         width=0.15),
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(-x, -y), (x, -y)],
+                         width=0.15),
+        ]
+    else:
+        ret += [
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(-x, y), (-xstop, y)],
+                         width=0.15),
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(x, y), (xstop, y)],
+                         width=0.15),
+
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(-x, -y), (-xstop, -y)],
+                         width=0.15),
+            Drawing.Line(layer=Drawing.Layer.Silkscreen,
+                         points=[(x, -y), (xstop, -y)],
+                         width=0.15),
+        ]
+
+    ret += [
+        Drawing.Line(
+            layer=Drawing.Layer.Assembly,
+            points=[(A.nominal/2, B.nominal/2),
+                    (A.nominal/2, -B.nominal/2),
+                    (-A.nominal/2, -B.nominal/2),
+                    (-A.nominal/2, B.nominal/2),
+                    (A.nominal/2, B.nominal/2)],
+            width=0.15),
+
+        Drawing.Line(
+            layer=Drawing.Layer.Documentation,
+            points=[(pad_width/2, 0), (-pad_width/2, 0)],
+            width=0.15),
+        Drawing.Line(
+            layer=Drawing.Layer.Documentation,
+            points=[(0, pad_width/2), (0, -pad_width/2)],
+            width=0.15),
+    ]
+    
+    _courtyard(ret, spec)
+    return ret
+
+## Package classes.
+
+def chip_device(profile, L, T, W, polarized):
+    """Returns drawing for a chip device.
+
+    Chip devices are rectangular packages named after their A and B
+    dimensions, e.g. 0805, 0603, 2012... Chip packages are commonly
+    used for resistors, capacitors, and LEDs.
+    """
+    lp = LandPatternSize.chip(profile, L.max)
+    return two_terminal_symmetric_device(A=L, B=W, L=L, T=T, W=W, spec=lp, polarized=polarized)
+
+def molded_body_device(profile, L, T, W, polarized):
+    """Returns drawing for a molded body device.
+
+    Molded body components have the electrical component encased in an
+    epoxy resin, with L-lead terminations folding under the component.
+    """
+    lp = LandPatternSize.inward_L_leads(profile)
+    return two_terminal_symmetric_device(A=L, B=W, L=L, T=T, W=W, spec=lp, polarized=polarized)
+
+def melf_device(profile, L, T, W, polarized):
+    """Returns drawing for a MELF (aka DO-213) body device."""
+    lp = LandPatternSize.MELF(profile)
+    return two_terminal_symmetric_device(A=L, B=W, L=L, T=T, W=W, spec=lp, polarized=polarized)
+
+def drawing_to_svg(drawing, background_color='black', copper_color='red', silkscreen_color='white', assembly_color='yellow', documentation_color='blue', courtyard_color='magenta', pixels_per_mm=10):
+    """Output an IPC footprint drawing as an SVG file.
+
+    This is mostly for debugging and pretty pictures in documentation.
+    """
+    (xmin, xmax), (ymin, ymax) = _bounding_box(drawing)
+    w, h = xmax-xmin+1, ymax-ymin+1
+    out = [
+        '<svg xmlns="http://www.w3.org/2000/svg" version="1.1">',
+        '<g transform="scale(10) translate({0}, {1})">'.format(
+            -xmin+0.5, -ymin+0.5),
+        '<rect x="{0}" y="{1}" width="{2}" height="{3}" fill="{4}" />'.format(
+            -w/2, -h/2, w, h, background_color),
+    ]
+    colormap = {
+        Drawing.Layer.Silkscreen: silkscreen_color,
+        Drawing.Layer.Assembly: assembly_color,
+        Drawing.Layer.Documentation: documentation_color,
+        Drawing.Layer.Courtyard: courtyard_color,
+    }
+    for f in drawing:
+        if isinstance(f, Drawing.Line):
+            pts = ['{0},{1}'.format(x, -y) for x, y in f.points]
+            opacity = 1 if f.layer == Drawing.Layer.Silkscreen else 0.7
+            out.append(
+                '<polyline points="{0}" stroke="{1}" stroke-width="{2}" opacity="{3}" fill="none" stroke-linecap="round" />'.format(
+                    ' '.join(pts), colormap[f.layer], f.width, opacity))
+        elif isinstance(f, Drawing.Circle):
+            out.append(
+                '<circle cx="{0}" cy="{1}" r="{2}" fill="{3}" opacity="0.8" />'.format(
+                    f.center[0], -f.center[1], f.radius, colormap[f.layer]))
+        elif isinstance(f, Drawing.Pad):
+            out.append(
+                '<rect x="{0}" y="{1}" width="{2}" height="{3}" rx="{4}" ry="{4}" fill="{5}" opacity="0.8" />'.format(
+                    f.center[0]-f.size[0]/2, -(f.center[1]+f.size[1]/2),
+                    f.size[0], f.size[1],
+                    0 if f.number == 1 else min(f.size[0], f.size[1])/2,
+                    copper_color))
+        else:
+            raise RuntimeError('Unknown drawing feature type')
+    out += [
+        '</g>',
+        '</svg>',
+    ]
+    return '\n'.join(out)
+
+class Drawing(object):
+    """Container class for drawn footprint features."""
+    Layer = Enum(
+        'Layer', ['Silkscreen', 'Courtyard', 'Assembly', 'Documentation'])
+    Line = namedtuple(
+        'Line', ['layer', 'points', 'width'])
+    Circle = namedtuple(
+        'Circle', ['layer', 'center', 'radius'])
+    Pad = namedtuple(
+        'Pad', ['number', 'center', 'size'])
+    
 class Dimension(object):
-    """A component dimension, defined as a min-max interval."""
+    """Records a dimension with tolerances."""
     def __init__(self, min, max):
+        """Construct a Dimension given min and max values."""
+        assert min <= max
         self.min, self.max = min, max
+
+    @classmethod
+    def from_nominal(cls, nominal, plus, minus=None):
+        """Construct a Dimension given nominal and plus/minus values."""
+        if minus is None:
+            minus = plus
+        return cls(nominal-minus, nominal+plus)
 
     @property
     def tolerance(self):
-        return math.abs(self.max - self.min)
+        """The tolerance is the min-max delta of the Dimension."""
+        return self.max - self.min
 
     @property
-    def center(self):
-        return self.min + self.tolerance/2
+    def nominal(self):
+        """The nominal value of the Dimension, assuming equal plus and minus tolerance."""
+        return self.min + (self.tolerance/2)
 
-    @classmethod
-    def nominal(cls, nom, plus, minus=None):
-        """Construct a Dimension given a nominal(+-)tolerance value."""
-        if minus is None:
-            minus = plus
-        r = cls(nom-minus, nom+plus)
+class LandPatternSize(object):
+    """Empirically-defined constants for pad and courtyard oversizing.
 
-# Datasheets typically define all the components we need for land
-# pattern calculation, with the exception of the inner dimension
-# between pin heels. Component's constructor calculates that.
+    IPC-7351B specifies, for each class of component footprint
+    (i.e. the way they contact the PCB), how much larger or smaller
+    the pad should be than the pin.
 
-class Component(object):
-    """Records and calculates Dimensions for a component."""
-    def __init__(self, A, L, T, W, B=None, H=None, pitch=None):
-        self.d = {
-            'A': A,
-            'B': B if B is not None else A,
-            'L': L,
-            'T': T,
-            'W': W,
-            'H': H,
-            'P': pitch,
-        }
-        for n, d in self.d.items():
-            if not isinstance(d, ComponentDimension):
-                raise ValueError('Component dimension "{0}" is not a ComponentDimension'.format(n))
-        S = ComponentDimension(L.min - 2*T.max, L.max - 2*T.min)
-        # S's dimensions are currently pessimized by assuming the
-        # worst case for L and T. The Standard instead suggests a
-        # statistical amalgamation of L and T's tolerances, by taking
-        # the root mean square of the tolerances and tightening S's
-        # min and max.
-        tolRMS = math.sqrt(L.tolerance**2 + T.tolerance**2)
-        half_rms = _rms(L.tolerance, T.tolerance)/2
-        S.min += half_rms
-        S.max -= half_rms
-        self.d['S'] = S
-
-    def __getattr__(self, k):
-        if k in self.d:
-            return self.d[k]
-        super(Component, self).__getattr__(k)
-
-class ProtrusionProfile(enum.Enum):
-    """How far the pads protrudes from under the pins.
-
-    The Standard defines three protrusion levels of decreasing size,
-    for use with designs of increasing density. Board designers should
-    aim to use the largest protrusion possible to improve
-    manufacturing yields.
-
-    In particular, hand-soldered boards are strongly encouraged to use
-    the "Most" protrusion.
-
+    Additionally, it specifies a per-class "courtyard excess",
+    additional margin that should be added to the combined bounding
+    box of the component and its land pattern.
     """
+
+    # These are the protrusion profiles defined by the Standard.
     Most = 0
     Nominal = 1
     Least = 2
 
-class LandProfile(object):
-    """Records the LandDimensions for a component archetype.
-
-    The Standard provides land profiles that were determined
-    empirically, and form part of the land pattern calculation
-    together with the dimensions of a particular component.
-
-    The values in some profiles depend on some other component
-    dimensions like the pin pitch or the shape of the pins. As such,
-    some classmethod constructors take a Component as input so they
-    can tune values as needed.
-
-    Constructors that don't need a Component still accept one to make
-    dynamic invocation easier, but can be identified by the fact that
-    they provide a default value of None, signifying that they don't
-    care.
-
-    """
-
-    def __init__(self, toe, heel, side, courtyard, rounding_increment=0.5):
+    def __init__(self, toe, heel, side, courtyard, rounding_increment=0.05):
         self.toe = toe
         self.heel = heel
         self.side = side
         self.courtyard = courtyard
         self.rounding_increment = rounding_increment
+        # PCB tolerance is how (im)precisely the PCB manufacturer can
+        # etch to the exact dimensions we give them.
+        self.pcb_tolerance = 0.1
+        # Place tolerance is how (im)precisely the pick-and-place
+        # machine can place components at the design position.
+        self.place_tolerance = 0.05
 
-    # Constructors for generic chip classes. Many JEDEC-registered
-    # package types fall into these classes.
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+        
+    def _round_down(self, x):
+        return round(x - (x % self.rounding_increment), 2)
 
+    def _round_up(self, x):
+        return self._round_down(x) + self.rounding_increment
+
+    def OuterPadSpan(self, L, T):
+        """Returns the outer pad span.
+
+        The outer pad span is the distance from the leftmost edge of
+        the left-side pad column, to the rightmost edge of the
+        right-side pad column.
+
+        This calculation assumes that the pad lengths on either side
+        of the component are identical. Asymmetric components like
+        SOT223 or TO252 will need to do additional work to calculate
+        the pad dimensions for each side separately.
+
+        This dimension is called Z_max in the standard.
+        """
+        # The standard calls this dimension Z(max).
+        return self._round_up(L.min + 2*self.toe + _rms(L.tolerance, self.pcb_tolerance, self.place_tolerance))
+
+    def InnerPadSpan(self, L, T):
+        """Returns the inner pad span.
+
+        The inner pad span is the distance from the rightmost edge of
+        the left-side pad column, to the leftmost edge of the
+        right-side pad column.
+
+        This calculation assumes that the pad lengths on either side
+        of the component are identical. Asymmetric components like
+        SOT223 or TO252 will need to do additional work to calculate
+        the pad dimensions for each side separately.
+
+        This dimension is called G_min in the standard.
+        """
+        # Calculate S, the inner pin-to-pin dimension.
+        rms = _rms(L.tolerance, T.tolerance)
+        S = Dimension(L.min - 2*T.max + rms/2,
+                      L.max - 2*T.min - rms/2)
+        # and use it to calculate G(min).
+        return self._round_down(S.max - 2*self.heel - _rms(S.tolerance, self.pcb_tolerance, self.place_tolerance))
+    
+    def PadWidth(self, W):
+        """Returns the pad width given component pin width.
+
+        This dimension is called X_max in the standard.
+        """
+        return self._round_up(W.min + 2*self.side + _rms(W.tolerance, self.pcb_tolerance, self.place_tolerance))
+
+    #
+    # Constructors for component archetypes begins here.
+    #
+    
     @classmethod
-    def gullwing_leads(cls, protrusion, component):
+    def gullwing_leads(cls, profile, A, L, T, pitch):
         """Gull wing or outward-facing L leads.
 
-        This profile notably covers the ICs in the SOIC, SOP, SOT, SOD
-        and QFP families.
-
+        This profile notably covers ICs in the SOIC, SOP, SOT, SOD and
+        QFP families.
         """
         toe = [0.55, 0.35, 0.15]
         heel = [0.45, 0.35, 0.25]
         side = [0.05, 0.03, 0.01]
         courtyard = [0.5, 0.25, 0.1]
-        if component.S.min <= component.A.max:
+        Smin = L.min - 2*T.max
+        if Smin <= A.max:
             heel = [0.25, 0.15, 0.05]
-        if component.P is not None or component.P <= 0.625:
-            side = [0.01 -0.02, -0.04]
-        return cls(toe[protrusion], heel[protrusion], side[protrusion], courtyard[protrusion])
+        if pitch <= 0.625:
+            side = [0.01, -0.02, -0.04]
+        return cls(toe[profile], heel[profile], side[profile], courtyard[profile])
 
     @classmethod
-    def J_leads(cls, protrusion, component=None):
+    def J_leads(cls, profile):
         """J leads, bending back under the component.
 
-        This profile notably covers the ICs in the PLCC and SOJ
-        families.
-
+        This profile notably covers ICs in the PLCC and SOJ families.
         """
         # Note: because J-leads bend backwards, the heel is used to
         # calculate the outer pattern dimension, and the toe for the
         # inner dimension. Thus, what we pass as the "toe" argument to
         # the constructor is technically actually the heel fillet, and
         # the "heel" argument is the toe fillet.
-        return cls([0.55, 0.35, 0.15][protrusion],
-                   [0.10, 0.00, -0.10][protrusion],
-                   [0.05, 0.03, 0.01][protrusion],
-                   [0.5, 0.25, 0.1][protrusion])
+        return cls([0.55, 0.35, 0.15][profile],
+                   [0.10, 0.00, -0.10][profile],
+                   [0.05, 0.03, 0.01][profile],
+                   [0.5, 0.25, 0.1][profile])
 
     outward_L_leads = gullwing_leads
 
     @classmethod
-    def inward_L_leads(cls, protrusion, component=None):
+    def inward_L_leads(cls, profile):
         """L leads, bending back under the component.
 
         This profile notably covers the "molded body" family of
         capacitors, inductors and diodes - for example Vishay's TR3
         series of tantalum capacitors.
-
         """
 
         # Like the J leads, heel and toe dimensions are flipped.
-        return cls([0.25, 0.15, 0.07][protrusion],
-                   [0.8, 0.5, 0.2][protrusion],
-                   [0.01, -0.05, -0.10][protrusion],
-                   [0.5, 0.25, 0.1][protrusion])
+        return cls([0.25, 0.15, 0.07][profile],
+                   [0.8, 0.5, 0.2][profile],
+                   [0.01, -0.05, -0.10][profile],
+                   [0.5, 0.25, 0.1][profile])
 
     @classmethod
-    def chip(cls, protrusion, component):
+    def chip(cls, profile, L):
         """2-terminal chip components.
 
         This profile notably covers devices whose packages are named
         after their physical dimensions: 0603, 2012 (0805 imperial),
         and so forth.
-
         """
         toe = [0.55, 0.35, 0.15]
         side = [0.05, 0, -0.05]
         courtyard = [0.5, 0.25, 0.1]
         rounding_increment = 0.5
-        if component.L.max < 1.6:
+        if L.max < 1.6:
             toe = [0.3, 0.2, 0.1]
             courtyard = [0.2, 0.15, 0.1]
             # Small chip components is the only place where rounding
             # is specified to an increment other than 0.5.
             rounding_increment = 0.2
-        return cls(toe[protrusion], 0, side[protrusion], courtyard[protrusion], rounding_increment)
+        return cls(toe[profile], 0, side[profile], courtyard[profile], rounding_increment)
 
     @classmethod
-    def chip_array(cls, protrusion, component=None):
+    def chip_array(cls, profile):
         """Leadless terminal arrays.
 
         This specifically covers arrays of passives that come in
         "Concave Chip Array", "Convex Chip Array", or "Flat Chip
         Array" packages.
-
         """
-        return cls([0.55, 0.45, 0.35][protrusion],
-                   [-0.05, -0.07, -0.10][protrusion],
-                   [-0.05, -0.07, -0.10][protrusion],
-                   [0.5, 0.25, 0.1][protrusion])
-
-    # Specialized packages whose land patterns don't fit well in
-    # larger classes.
+        return cls([0.55, 0.45, 0.35][profile],
+                   [-0.05, -0.07, -0.10][profile],
+                   [-0.05, -0.07, -0.10][profile],
+                   [0.5, 0.25, 0.1][profile])
 
     @classmethod
-    def electrolytic_capacitor(cls, protrusion, component):
+    def electrolytic_capacitor(cls, profile, H):
         """Electrolytic SMD capacitor on a notched rectangular base.
 
         This covers a single package type that most SMD electrolytics
         come as. For example, the Vishay 140 CRH family uses this
         package.
-
         """
         toe = [0.7, 0.5, 0.3]
         heel = [0, -0.1, -0.2]
         side = [0.5, 0.4, 0.3]
-        if component.H > 10:
+        if H.max > 10:
             toe = [1.0, 0.7, 0.4]
             heel = [0, -0.05, -0.10]
             side = [0.6, 0.5, 0.4]
-        return cls(toe[protrusion],
-                   heel[protrusion],
-                   side[protrusion],
-                   [1.0, 0.5, 0.25][protrusion])
+        return cls(toe[profile],
+                   heel[profile],
+                   side[profile],
+                   [1.0, 0.5, 0.25][profile])
 
     @classmethod
-    def DIP_I_mount(cls, protrusion, component=None):
+    def DIP_I_mount(cls, profile):
         """Butt-mounted DIP packages.
 
         The Standard specifies a technique for surface-mounting DIP
@@ -243,67 +574,60 @@ class LandProfile(object):
         This is very esoteric, but a very small number of components
         come direct from the factory in "DIP butt joint" packaging,
         with the DIP leads pre-cut.
-
         """
-        return cls([1.0, 0.8, 0.6][protrusion],
-                   [1.0, 0.8, 0.6][protrusion],
-                   [0.3, 0.2, 0.1][protrusion],
-                   [1.5, 0.8, 0.2][protrusion])
+        return cls([1.0, 0.8, 0.6][profile],
+                   [1.0, 0.8, 0.6][profile],
+                   [0.3, 0.2, 0.1][profile],
+                   [1.5, 0.8, 0.2][profile])
 
     @classmethod
-    def TO252_package(cls, protrusion, component=None):
-        """Surface-mount DPAK/TO-252 package.
-
-        This profile can also be used for DDPAK/TO-263 packages.
-
-        """
-        return cls([0.55, 0.35, 0.15][protrusion],
-                   [0.45, 0.35, 0.25][protrusion],
-                   [0.05, 0.03, 0.01][protrusion],
-                   [0.5, 0.25, 0.1][protrusion])
+    def TO(cls, profile):
+        """Surface-mount DPAK/TO type package."""
+        return cls([0.55, 0.35, 0.15][profile],
+                   [0.45, 0.35, 0.25][profile],
+                   [0.05, 0.03, 0.01][profile],
+                   [0.5, 0.25, 0.1][profile])
 
     @classmethod
-    def QFN(cls, protrusion, component=None):
+    def QFN(cls, profile):
         """Leadless IC packages with pads only on the bottom.
 
         This covers all QFN and SON packages.
-
         """
-        return cls([0.4, 0.3, 0.2][protrusion],
-                   0
-                   -0.04
-                   [0.5, 0.25, 0.1][protrusion])
+        return cls([0.4, 0.3, 0.2][profile],
+                   0,
+                   -0.04,
+                   [0.5, 0.25, 0.1][profile])
     SON = QFN
 
     @classmethod
-    def MELF(cls, protrusion, component=None):
+    def MELF(cls, profile):
         """MELF/DO-213 package."""
-        return cls([0.6, 0.4, 0.2][protrusion],
-                   [0.2, 0.1, 0.02][protrusion],
-                   [0.1, 0.05, 0.01][protrusion],
-                   [0.5, 0.25, 0.1][protrusion])
+        return cls([0.6, 0.4, 0.2][profile],
+                   [0.2, 0.1, 0.02][profile],
+                   [0.1, 0.05, 0.01][profile],
+                   [0.5, 0.25, 0.1][profile])
 
     @classmethod
-    def LCC(cls, protrusion, component=None):
+    def LCC(cls, profile):
         """LCC package.
 
         Careful, this is not PLCC! LCC packages are leadless and a
         closer relative of QFN.
-
         """
         # Like j_leads, heel and toe are swapped here.
-        return cls([0.65, 0.55, 0.45][protrusion],
-                   [0.25, 0.15, 0.05][protrusion],
-                   [0.05, -0.05, -0.15][protrusion],
-                   [0.5, 0.25, 0.1][protrusion])
+        return cls([0.65, 0.55, 0.45][profile],
+                   [0.25, 0.15, 0.05][profile],
+                   [0.05, -0.05, -0.15][profile],
+                   [0.5, 0.25, 0.1][profile])
 
     @classmethod
-    def SODFL(cls, protrusion, component=None):
+    def SODFL(cls, profile):
         """Small outline flat lead diode/transistor."""
-        return cls([0.3, 0.2, 0.1][protrusion],
+        return cls([0.3, 0.2, 0.1][profile],
                    0,
-                   [0.05, 0, -0.05][protrusion],
-                   [0.2, 0.15, 0.1][protrusion])
+                   [0.05, 0, -0.05][profile],
+                   [0.2, 0.15, 0.1][profile])
     SOTFL = SODFL
 
     # Finally, constructor aliases for the generic classes, so that
@@ -334,62 +658,51 @@ class LandProfile(object):
     molded_inductor = inward_L_leads
     molded_diode = inward_L_leads
 
+def _printret(x):
+    """Debugging helper"""
+    print x
+    return x
+    
 def _rms(*args):
     return math.sqrt(sum(x**2 for x in args))
 
-def _round_down(x, increment):
-    return round(x - (x % increment), 2)
+def _bounding_box(drawing):
+    xmin, xmax = 0, 0
+    ymin, ymax = 0, 0
+    for f in drawing:
+        if hasattr(f, 'layer') and f.layer not in (Drawing.Layer.Silkscreen, Drawing.Layer.Assembly):
+            continue
+        if isinstance(f, Drawing.Line):
+            for p in f.points:
+                xmin = min(xmin, p[0])
+                xmax = max(xmax, p[0])
+                ymin = min(ymin, p[1])
+                ymax = max(ymax, p[1])
+        elif isinstance(f, Drawing.Circle):
+            xmin = min(xmin, f.center[0] - f.radius)
+            xmax = max(xmax, f.center[0] + f.radius)
+            ymin = min(ymin, f.center[1] - f.radius)
+            ymax = max(ymax, f.center[1] + f.radius)
+        elif isinstance(f, Drawing.Pad):
+            xmin = min(xmin, f.center[0] - f.size[0]/2)
+            xmax = max(xmax, f.center[0] + f.size[0]/2)
+            ymin = min(ymin, f.center[1] - f.size[1]/2)
+            ymax = max(ymax, f.center[1] + f.size[1]/2)
+        else:
+            raise RuntimeError('Unexpected drawing feature type')
+    return (xmin, xmax), (ymin, ymax)
 
-def _round_up(x, increment):
-    return _round_down(x, increment) + increment
+def _courtyard(drawing, spec):
+    (xmin, xmax), (ymin, ymax) = _bounding_box(drawing)
+    xmin -= spec.courtyard
+    xmax += spec.courtyard
+    ymin -= spec.courtyard
+    ymax += spec.courtyard
 
-class Footprint(object):
-    """Holds the critical dimensions of a PCB land pattern.
-
-    Given the combination of a Component and a LandProfile, this class
-    calculates the critical dimensions for the land pattern, and
-    offers some helpers for pad placement.
-
-    """
-    def __init__(self, component, land_profile, pcb_manufacturing_tolerance=0.1, part_placement_tolerance=0.05):
-        self.component = component
-        self.profile = profile
-        self.Z = _round_up(component.L.min +
-                           2*land_profile.toe +
-                           _rms(component.L.tolerance,
-                                pcb_manufacturing_tolerance,
-                                part_placement_tolerance),
-                           land_profile.rounding_increment)
-        self.G = _round_down(component.S.max -
-                             2*land_profile.heel -
-                             _rms(component.S.tolerance,
-                                  pcb_manufacturing_tolerance,
-                                  part_placement_tolerance),
-                             land_profile.rounding_increment)
-        self.X = _round_up(component.W.min +
-                           2*land_profile.side +
-                           _rms(component.W.tolerance,
-                                pcb_manufacturing_tolerance,
-                                part_placement_tolerance),
-                           land_profile.rounding_increment)
-
-    def courtyard(self, w, h):
-        """Calculate courtyard dimensions based on component bounding box.
-
-        The Standard specifies a "courtyard excess" margin all around
-        the land pattern. However, the "critical dimension" varies
-        depending on the footprint - it can either be dictated by the
-        pads (as with most QFPs), or by the component body (as with
-        pullback QFNs).
-
-        Once you have drawn the land pattern and determined the
-        critical width and height dimensions, this function will give
-        you the width and height of the courtyard.
-        """
-        # TODO: this is an ugly way to go about it. A much nicer way
-        # would be to draw the entire component for the user - in the
-        # form of abstract draw commands. Then we can reason about the
-        # courtyard ourselves without requiring the user to figure out
-        # critical dimensions and whatnot.
-        return (_round_up(w + 2*self.land_profile.courtyard_excess),
-                _round_up(h + 2*self.land_profile.courtyard_excess))
+    drawing.append(Drawing.Line(layer=Drawing.Layer.Courtyard,
+                                points=[(xmin, ymin),
+                                        (xmax, ymin),
+                                        (xmax, ymax),
+                                        (xmin, ymax),
+                                        (xmin, ymin)],
+                                width=0.15))

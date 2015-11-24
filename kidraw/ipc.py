@@ -290,17 +290,17 @@ def melf_device(profile, L, T, W, polarized):
     lp = LandPatternSize.MELF(profile)
     return two_terminal_symmetric_device(A=L, B=W, L=L, T=T, W=W, spec=lp, polarized=polarized)
 
-def drawing_to_svg(drawing, background_color='black', copper_color='red', silkscreen_color='white', assembly_color='yellow', documentation_color='blue', courtyard_color='magenta', pixels_per_mm=10):
+def drawing_to_svg(drawing, background_color='black', copper_color='red', silkscreen_color='white', assembly_color='yellow', documentation_color='blue', courtyard_color='magenta', pixels_per_mm=20):
     """Output an IPC footprint drawing as an SVG file.
 
     This is mostly for debugging and pretty pictures in documentation.
     """
     (xmin, xmax), (ymin, ymax) = _bounding_box(drawing)
-    w, h = xmax-xmin+1, ymax-ymin+1
+    w, h = xmax-xmin+2, ymax-ymin+2
     out = [
         '<svg xmlns="http://www.w3.org/2000/svg" version="1.1">',
-        '<g transform="scale(10) translate({0}, {1})">'.format(
-            -xmin+0.5, -ymin+0.5),
+        '<g transform="scale({2}) translate({0}, {1})">'.format(
+            -xmin+1, -ymin+1, pixels_per_mm),
         '<rect x="{0}" y="{1}" width="{2}" height="{3}" fill="{4}" />'.format(
             -w/2, -h/2, w, h, background_color),
     ]

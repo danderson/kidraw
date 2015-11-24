@@ -3,6 +3,9 @@ from collections import namedtuple
 from enum import Enum
 import math
 
+PenWidth = 0.15
+AssemblyPenWidth = 0.1
+
 def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
     """Returns drawing for a 2-terminal symmetric device.
 
@@ -29,10 +32,10 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
         # Origin mark
         Drawing.Line(layer=Drawing.Layer.Documentation,
                      points=[(-pad_width/2, 0), (pad_width/2, 0)],
-                     width=0.15),
+                     width=PenWidth),
         Drawing.Line(layer=Drawing.Layer.Documentation,
                      points=[(0, -pad_width/2), (0, pad_width/2)],
-                     width=0.15),
+                     width=PenWidth),
 
         # Assembly outline
         Drawing.Line(layer=Drawing.Layer.Assembly,
@@ -42,7 +45,7 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
                              (A.nominal/2, B.nominal/2),
                              (-A.nominal/2, B.nominal/2),
                      ],
-                     width=0.15),
+                     width=AssemblyPenWidth),
     ]
 
     if L.nominal > A.nominal:
@@ -53,14 +56,14 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
                                  (-L.nominal/2, -W.nominal/2),
                                  (-A.nominal/2, -W.nominal/2),
                          ],
-                         width=0.15),
+                         width=AssemblyPenWidth),
             Drawing.Line(layer=Drawing.Layer.Assembly,
                          points=[(A.nominal/2, W.nominal/2),
                                  (L.nominal/2, W.nominal/2),
                                  (L.nominal/2, -W.nominal/2),
                                  (A.nominal/2, -W.nominal/2),
                          ],
-                         width=0.15),
+                         width=AssemblyPenWidth),
         ]
 
     if B.nominal > pad_width:
@@ -69,10 +72,10 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
         ret += [
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-x, y), (x, y)],
-                         width=0.15),
+                         width=PenWidth),
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-x, -y), (x, -y)],
-                         width=0.15)
+                         width=PenWidth)
         ]
         v = pad_width/2 + 0.2
         if v < y:
@@ -81,7 +84,7 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
                     ret.append(
                         Drawing.Line(layer=Drawing.Layer.Silkscreen,
                                      points=[(xsign*x, ysign*v), (xsign*x, ysign*y)],
-                                     width=0.15))
+                                     width=PenWidth))
         if polarized:
             ret.append(Drawing.Circle(
                 layer=Drawing.Layer.Silkscreen,
@@ -93,10 +96,10 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
         ret += [
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-v, pad_width/2), (v, pad_width/2)],
-                         width=0.15),
+                         width=PenWidth),
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-v, -pad_width/2), (v, -pad_width/2)],
-                         width=0.15),
+                         width=PenWidth),
         ]
         if polarized:
             ret += [
@@ -144,7 +147,7 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
                                              (pin_origin[0]+pin_size[0], pin_origin[1]+pin_size[1]),
                                              (pin_origin[0], pin_origin[1]+pin_size[1]),
                                              (pin_origin[0], pin_origin[1])],
-                                     width=0.15),
+                                     width=AssemblyPenWidth),
                         ])
             pad_center[0] += offset[0]
             pad_center[1] += offset[1]
@@ -178,67 +181,67 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
 
     x, y = A.nominal/2, B.nominal/2
     xstop, ystop = None, None
-    if pins_leftright > 0 and x > (Glr/2 - 0.15):
+    if pins_leftright > 0 and x > (Glr/2 - PenWidth):
         # Pull the left/right lines back to just a notch at the top
         # and bottom.
-        ystop = (pins_leftright/2-0.5)*pitch + pad_width/2 + 0.15
+        ystop = (pins_leftright/2-0.5)*pitch + pad_width/2 + PenWidth
         assert ystop < y
-    if pins_updown > 0 and y > (Gud/2 - 0.15):
+    if pins_updown > 0 and y > (Gud/2 - PenWidth):
         # Pull the top/bottom lines back to just a notch at the left
         # and right.
-        xstop = (pins_updown/2-0.5)*pitch + pad_width/2 + 0.15
+        xstop = (pins_updown/2-0.5)*pitch + pad_width/2 + PenWidth
         assert xstop < x
 
     if ystop is None:
         ret += [
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-x, y), (-x, -y)],
-                         width=0.15),
+                         width=PenWidth),
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(x, y), (x, -y)],
-                         width=0.15),
+                         width=PenWidth),
         ]
     else:
         ret += [
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-x, y), (-x, ystop)],
-                         width=0.15),
+                         width=PenWidth),
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-x, -y), (-x, -ystop)],
-                         width=0.15),
+                         width=PenWidth),
 
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(x, y), (x, ystop)],
-                         width=0.15),
+                         width=PenWidth),
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(x, -y), (x, -ystop)],
-                         width=0.15),
+                         width=PenWidth),
         ]
         
     if xstop is None:
         ret += [
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-x, y), (x, y)],
-                         width=0.15),
+                         width=PenWidth),
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-x, -y), (x, -y)],
-                         width=0.15),
+                         width=PenWidth),
         ]
     else:
         ret += [
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-x, y), (-xstop, y)],
-                         width=0.15),
+                         width=PenWidth),
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(x, y), (xstop, y)],
-                         width=0.15),
+                         width=PenWidth),
 
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-x, -y), (-xstop, -y)],
-                         width=0.15),
+                         width=PenWidth),
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(x, -y), (xstop, -y)],
-                         width=0.15),
+                         width=PenWidth),
         ]
 
     ret += [
@@ -249,16 +252,16 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
                     (-A.nominal/2, -B.nominal/2),
                     (-A.nominal/2, B.nominal/2),
                     (A.nominal/2, B.nominal/2)],
-            width=0.15),
+            width=AssemblyPenWidth),
 
         Drawing.Line(
             layer=Drawing.Layer.Documentation,
             points=[(pad_width/2, 0), (-pad_width/2, 0)],
-            width=0.15),
+            width=PenWidth),
         Drawing.Line(
             layer=Drawing.Layer.Documentation,
             points=[(0, pad_width/2), (0, -pad_width/2)],
-            width=0.15),
+            width=PenWidth),
     ]
     
     _courtyard(ret, spec)
@@ -705,4 +708,4 @@ def _courtyard(drawing, spec):
                                         (xmax, ymax),
                                         (xmin, ymax),
                                         (xmin, ymin)],
-                                width=0.15))
+                                width=PenWidth))

@@ -172,7 +172,7 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
     pin_line(((pins_updown/2-0.5)*pitch, pad_ud_center),
              (pad_width, pad_ud_length),
              ((pins_updown/2-0.5)*pitch + W.nominal/2, B.nominal/2),
-             (-W.nominal/2, (LB.nominal-B.nominal)/2),
+             (-W.nominal, (LB.nominal-B.nominal)/2),
              (-pitch, 0),
              pins_leftright+pins_updown+pins_leftright+1, pins_updown)
 

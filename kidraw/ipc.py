@@ -298,7 +298,7 @@ def drawing_to_svg(drawing, background_color='black', copper_color='red', silksc
 
     This is mostly for debugging and pretty pictures in documentation.
     """
-    (xmin, xmax), (ymin, ymax) = _bounding_box(drawing)
+    (xmin, xmax), (ymin, ymax) = bounding_box(drawing)
     w, h = xmax-xmin+2, ymax-ymin+2
     out = [
         '<svg xmlns="http://www.w3.org/2000/svg" version="1.1">',
@@ -669,7 +669,7 @@ def _printret(x):
 def _rms(*args):
     return math.sqrt(sum(x**2 for x in args))
 
-def _bounding_box(drawing):
+def bounding_box(drawing):
     xmin, xmax = 0, 0
     ymin, ymax = 0, 0
     for f in drawing:
@@ -696,7 +696,7 @@ def _bounding_box(drawing):
     return (xmin, xmax), (ymin, ymax)
 
 def _courtyard(drawing, spec):
-    (xmin, xmax), (ymin, ymax) = _bounding_box(drawing)
+    (xmin, xmax), (ymin, ymax) = bounding_box(drawing)
     xmin -= spec.courtyard
     xmax += spec.courtyard
     ymin -= spec.courtyard

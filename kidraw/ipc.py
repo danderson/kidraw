@@ -143,7 +143,7 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
                 Drawing.Pad(number=n,
                             center=tuple(pad_center),
                             size=pad_size,
-                            square=(n == 1)),
+                            obround=(n != 1)),
                 Drawing.Line(layer=Drawing.Layer.Assembly,
                              points=[(pin_origin[0], pin_origin[1]),
                                      (pin_origin[0]+pin_size[0], pin_origin[1]),
@@ -396,7 +396,7 @@ class Drawing(object):
                     '<rect x="{0}" y="{1}" width="{2}" height="{3}" rx="{4}" ry="{4}" fill="{5}" opacity="0.8" />'.format(
                         f.center[0]-f.size[0]/2, -(f.center[1]+f.size[1]/2),
                         f.size[0], f.size[1],
-                        0 if f.square else min(f.size[0], f.size[1])/2,
+                        min(f.size[0], f.size[1])/2 if f.obround else 0,
                         copper_color))
             else:
                 raise RuntimeError('Unknown drawing feature type')
@@ -422,11 +422,13 @@ class Drawing(object):
             self.radius = radius
 
     class Pad(object):
-        def __init__(self, number, center, size, square=True):
+        def __init__(self, number, center, size, obround=False):
             self.number = number
             self.center = center
             self.size = size
-            self.square = square
+            # Drawing suggestion: obround shape preferred if True,
+            # else square.
+            self.obround = obround
     
 class Dimension(object):
     """Records a dimension with tolerances."""

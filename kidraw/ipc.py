@@ -20,8 +20,9 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
     pad_width = spec.PadWidth(W)
     pad_length = (Z - G)/2
     pad_center_x = (G + pad_length)/2
-    
-    ret = [
+
+    ret = Drawing()
+    ret.features += [
         Drawing.Pad(number=1,
                     center=(-pad_center_x, 0),
                     size=(pad_length, pad_width)),
@@ -31,10 +32,10 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
 
         # Origin mark
         Drawing.Line(layer=Drawing.Layer.Documentation,
-                     points=[(-pad_width/2, 0), (pad_width/2, 0)],
+                     points=[(-G/4, 0), (G/4, 0)],
                      width=PenWidth),
         Drawing.Line(layer=Drawing.Layer.Documentation,
-                     points=[(0, -pad_width/2), (0, pad_width/2)],
+                     points=[(0, -G/4), (0, G/4)],
                      width=PenWidth),
 
         # Assembly outline
@@ -49,7 +50,7 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
     ]
 
     if L.nominal > A.nominal:
-        ret += [
+        ret.features += [
             Drawing.Line(layer=Drawing.Layer.Assembly,
                          points=[(-A.nominal/2, W.nominal/2),
                                  (-L.nominal/2, W.nominal/2),
@@ -69,7 +70,7 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
     if B.nominal > pad_width:
         # Silkscreen wraps around the pad side
         x, y = A.nominal/2, B.nominal/2
-        ret += [
+        ret.features += [
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-x, y), (x, y)],
                          width=PenWidth),
@@ -81,19 +82,19 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
         if v < y:
             for xsign in (-1, 1):
                 for ysign in (-1, 1):
-                    ret.append(
+                    ret.features.append(
                         Drawing.Line(layer=Drawing.Layer.Silkscreen,
                                      points=[(xsign*x, ysign*v), (xsign*x, ysign*y)],
                                      width=PenWidth))
         if polarized:
-            ret.append(Drawing.Circle(
+            ret.features.append(Drawing.Circle(
                 layer=Drawing.Layer.Silkscreen,
                 center=(-x-0.2, y),
                 radius=0.1))
     else:
         # Silkscreen is within the pads.
         v = G/2 - 0.2
-        ret += [
+        ret.features += [
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-v, pad_width/2), (v, pad_width/2)],
                          width=PenWidth),
@@ -102,11 +103,11 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
                          width=PenWidth),
         ]
         if polarized:
-            ret += [
+            ret.features += [
                 Drawing.Line(
                     layer=Drawing.Layer.Silkscreen,
-                    points=[(-v+0.075, pad_width/2), (-v+0.075, -pad_width/2)],
-                    width=0.3),
+                    points=[(-v, pad_width/2), (-v, -pad_width/2)],
+                    width=PenWidth),
                 Drawing.Circle(
                     layer=Drawing.Layer.Silkscreen,
                     center=(-Z/2-0.2, 0),
@@ -122,7 +123,7 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
     This is a generic footprint builder that will accept any
     LandPatternSize.
     """
-    ret = []
+    ret = Drawing()
 
     Zlr, Glr = spec.OuterPadSpan(LA, T), spec.InnerPadSpan(LA, T)
     pad_lr_length = (Zlr - Glr)/2
@@ -138,44 +139,56 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
         pad_center = list(pad_center)
         pin_origin = list(pin_origin)
         for n in range(number, number+count):
-            ret.extend([Drawing.Pad(number=n,
-                                    center=tuple(pad_center),
-                                    size=pad_size),
-                        Drawing.Line(layer=Drawing.Layer.Assembly,
-                                     points=[(pin_origin[0], pin_origin[1]),
-                                             (pin_origin[0]+pin_size[0], pin_origin[1]),
-                                             (pin_origin[0]+pin_size[0], pin_origin[1]+pin_size[1]),
-                                             (pin_origin[0], pin_origin[1]+pin_size[1]),
-                                             (pin_origin[0], pin_origin[1])],
-                                     width=AssemblyPenWidth),
-                        ])
+            ret.features.extend([
+                Drawing.Pad(number=n,
+                            center=tuple(pad_center),
+                            size=pad_size,
+                            square=(n == 1)),
+                Drawing.Line(layer=Drawing.Layer.Assembly,
+                             points=[(pin_origin[0], pin_origin[1]),
+                                     (pin_origin[0]+pin_size[0], pin_origin[1]),
+                                     (pin_origin[0]+pin_size[0], pin_origin[1]+pin_size[1]),
+                                     (pin_origin[0], pin_origin[1]+pin_size[1]),
+                                     (pin_origin[0], pin_origin[1])],
+                             width=AssemblyPenWidth),
+            ])
             pad_center[0] += offset[0]
             pad_center[1] += offset[1]
             pin_origin[0] += offset[0]
             pin_origin[1] += offset[1]
 
+    if LA.nominal - A.nominal <= 0:
+        pin_size_lr = (-T.nominal, W.nominal)
+    else:
+        pin_size_lr = ((LA.nominal-A.nominal)/2, W.nominal)
+
+    if LB.nominal - B.nominal <= 0:
+        pin_size_ud = (-W.nominal, -T.nominal)
+    else:
+        pin_size_ud = (-W.nominal, (LB.nominal-B.nominal)/2)
+
     pin_line((-pad_lr_center, (pins_leftright/2-0.5)*pitch),
              (pad_lr_length, pad_width),
              (-A.nominal/2, (pins_leftright/2-0.5)*pitch + W.nominal/2),
-             (-(LA.nominal-A.nominal)/2, -W.nominal),
+             (-pin_size_lr[0], -pin_size_lr[1]),
              (0, -pitch),
              1, pins_leftright)
     pin_line((-(pins_updown/2-0.5)*pitch, -pad_ud_center),
              (pad_width, pad_ud_length),
              (-(pins_updown/2-0.5)*pitch - W.nominal/2, -B.nominal/2),
-             (W.nominal, -(LB.nominal-B.nominal)/2),
+             (-pin_size_ud[0], -pin_size_ud[1]),
              (pitch, 0),
              pins_leftright+1, pins_updown)
     pin_line((pad_lr_center, -(pins_leftright/2-0.5)*pitch),
              (pad_lr_length, pad_width),
              (A.nominal/2, -(pins_leftright/2-0.5)*pitch - W.nominal/2),
-             ((LA.nominal-A.nominal)/2, W.nominal),
+             (pin_size_lr[0], pin_size_lr[1]),
              (0, pitch),
              pins_leftright+pins_updown+1, pins_leftright)
     pin_line(((pins_updown/2-0.5)*pitch, pad_ud_center),
              (pad_width, pad_ud_length),
              ((pins_updown/2-0.5)*pitch + W.nominal/2, B.nominal/2),
-             (-W.nominal, (LB.nominal-B.nominal)/2),
+             (pin_size_ud[0], pin_size_ud[1]),
              (-pitch, 0),
              pins_leftright+pins_updown+pins_leftright+1, pins_updown)
 
@@ -193,7 +206,7 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
         assert xstop < x
 
     if ystop is None:
-        ret += [
+        ret.features += [
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-x, y), (-x, -y)],
                          width=PenWidth),
@@ -202,7 +215,7 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
                          width=PenWidth),
         ]
     else:
-        ret += [
+        ret.features += [
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-x, y), (-x, ystop)],
                          width=PenWidth),
@@ -219,7 +232,7 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
         ]
         
     if xstop is None:
-        ret += [
+        ret.features += [
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-x, y), (x, y)],
                          width=PenWidth),
@@ -228,7 +241,7 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
                          width=PenWidth),
         ]
     else:
-        ret += [
+        ret.features += [
             Drawing.Line(layer=Drawing.Layer.Silkscreen,
                          points=[(-x, y), (-xstop, y)],
                          width=PenWidth),
@@ -244,7 +257,7 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
                          width=PenWidth),
         ]
 
-    ret += [
+    ret.features += [
         Drawing.Line(
             layer=Drawing.Layer.Assembly,
             points=[(A.nominal/2, B.nominal/2),
@@ -293,62 +306,127 @@ def melf_device(profile, L, T, W, polarized):
     lp = LandPatternSize.MELF(profile)
     return two_terminal_symmetric_device(A=L, B=W, L=L, T=T, W=W, spec=lp, polarized=polarized)
 
-def drawing_to_svg(drawing, background_color='black', copper_color='red', silkscreen_color='white', assembly_color='yellow', documentation_color='blue', courtyard_color='magenta', pixels_per_mm=20):
-    """Output an IPC footprint drawing as an SVG file.
-
-    This is mostly for debugging and pretty pictures in documentation.
-    """
-    (xmin, xmax), (ymin, ymax) = bounding_box(drawing)
-    w, h = xmax-xmin+2, ymax-ymin+2
-    out = [
-        '<svg xmlns="http://www.w3.org/2000/svg" version="1.1">',
-        '<g transform="scale({2}) translate({0}, {1})">'.format(
-            -xmin+1, -ymin+1, pixels_per_mm),
-        '<rect x="{0}" y="{1}" width="{2}" height="{3}" fill="{4}" />'.format(
-            -w/2, -h/2, w, h, background_color),
-    ]
-    colormap = {
-        Drawing.Layer.Silkscreen: silkscreen_color,
-        Drawing.Layer.Assembly: assembly_color,
-        Drawing.Layer.Documentation: documentation_color,
-        Drawing.Layer.Courtyard: courtyard_color,
-    }
-    for f in drawing:
-        if isinstance(f, Drawing.Line):
-            pts = ['{0},{1}'.format(x, -y) for x, y in f.points]
-            opacity = 1 if f.layer == Drawing.Layer.Silkscreen else 0.7
-            out.append(
-                '<polyline points="{0}" stroke="{1}" stroke-width="{2}" opacity="{3}" fill="none" stroke-linecap="round" />'.format(
-                    ' '.join(pts), colormap[f.layer], f.width, opacity))
-        elif isinstance(f, Drawing.Circle):
-            out.append(
-                '<circle cx="{0}" cy="{1}" r="{2}" fill="{3}" opacity="0.8" />'.format(
-                    f.center[0], -f.center[1], f.radius, colormap[f.layer]))
-        elif isinstance(f, Drawing.Pad):
-            out.append(
-                '<rect x="{0}" y="{1}" width="{2}" height="{3}" rx="{4}" ry="{4}" fill="{5}" opacity="0.8" />'.format(
-                    f.center[0]-f.size[0]/2, -(f.center[1]+f.size[1]/2),
-                    f.size[0], f.size[1],
-                    0 if f.number == 1 else min(f.size[0], f.size[1])/2,
-                    copper_color))
-        else:
-            raise RuntimeError('Unknown drawing feature type')
-    out += [
-        '</g>',
-        '</svg>',
-    ]
-    return '\n'.join(out)
-
 class Drawing(object):
-    """Container class for drawn footprint features."""
+    """Container for drawn footprint features."""
+
+    def __init__(self):
+        self.features = []
+
+    @property
+    def length(self):
+        (xmin, xmax), _ = self.bounding_box
+        return xmax-xmin
+
+    @property
+    def width(self):
+        _, (ymin, ymax) = self.bounding_box
+        return ymax-ymin
+
+    @property
+    def bounding_box(self):
+        xmin, xmax = 0, 0
+        ymin, ymax = 0, 0
+        for f in self.features:
+            if isinstance(f, Drawing.Line):
+                for p in f.points:
+                    xmin = min(xmin, p[0])
+                    xmax = max(xmax, p[0])
+                    ymin = min(ymin, p[1])
+                    ymax = max(ymax, p[1])
+            elif isinstance(f, Drawing.Circle):
+                xmin = min(xmin, f.center[0] - f.radius)
+                xmax = max(xmax, f.center[0] + f.radius)
+                ymin = min(ymin, f.center[1] - f.radius)
+                ymax = max(ymax, f.center[1] + f.radius)
+            elif isinstance(f, Drawing.Pad):
+                xmin = min(xmin, f.center[0] - f.size[0]/2)
+                xmax = max(xmax, f.center[0] + f.size[0]/2)
+                ymin = min(ymin, f.center[1] - f.size[1]/2)
+                ymax = max(ymax, f.center[1] + f.size[1]/2)
+            else:
+                raise RuntimeError('Unexpected drawing feature type')
+        return (xmin, xmax), (ymin, ymax)
+
+    def scale(self, s):
+        for f in self.features:
+            if isinstance(f, Drawing.Line):
+                f.points = [(x*s, y*s) for x,y in f.points]
+                f.width *= s
+            elif isinstance(f, Drawing.Circle):
+                f.center = (f.center[0]*s, f.center[1]*s)
+                f.radius *= s
+            elif isinstance(f, Drawing.Pad):
+                f.center = (f.center[0]*s, f.center[1]*s)
+                f.size = (f.size[0]*s, f.size[1]*s)
+        return self
+
+    def svg(self, background_color='black', copper_color='red', silkscreen_color='white', assembly_color='yellow', documentation_color='blue', courtyard_color='magenta'):
+        """Output an IPC footprint drawing as an SVG file.
+        
+        This is mostly for debugging and pretty pictures in
+        documentation.
+        """
+        (xmin, xmax), (ymin, ymax) = self.bounding_box
+        w, h = xmax-xmin, ymax-ymin
+        out = [
+            '<svg xmlns="http://www.w3.org/2000/svg" version="1.1">',
+            '<g transform="translate({0}, {1})">'.format(-xmin, -ymin),
+            '<rect x="{0}" y="{1}" width="{2}" height="{3}" fill="{4}" />'.format(
+                -w/2, -h/2, w, h, background_color),
+        ]
+        colormap = {
+            Drawing.Layer.Silkscreen: silkscreen_color,
+            Drawing.Layer.Assembly: assembly_color,
+            Drawing.Layer.Documentation: documentation_color,
+            Drawing.Layer.Courtyard: courtyard_color,
+        }
+        for f in self.features:
+            if isinstance(f, Drawing.Line):
+                pts = ['{0},{1}'.format(x, -y) for x, y in f.points]
+                opacity = 1 if f.layer == Drawing.Layer.Silkscreen else 0.6
+                out.append(
+                    '<polyline points="{0}" stroke="{1}" stroke-width="{2}" opacity="{3}" fill="none" stroke-linecap="round" />'.format(
+                        ' '.join(pts), colormap[f.layer], f.width, opacity))
+            elif isinstance(f, Drawing.Circle):
+                out.append(
+                    '<circle cx="{0}" cy="{1}" r="{2}" fill="{3}" opacity="0.8" />'.format(
+                        f.center[0], -f.center[1], f.radius, colormap[f.layer]))
+            elif isinstance(f, Drawing.Pad):
+                out.append(
+                    '<rect x="{0}" y="{1}" width="{2}" height="{3}" rx="{4}" ry="{4}" fill="{5}" opacity="0.8" />'.format(
+                        f.center[0]-f.size[0]/2, -(f.center[1]+f.size[1]/2),
+                        f.size[0], f.size[1],
+                        0 if f.square else min(f.size[0], f.size[1])/2,
+                        copper_color))
+            else:
+                raise RuntimeError('Unknown drawing feature type')
+        out += [
+            '</g>',
+            '</svg>',
+        ]
+        return '\n'.join(out)
+
     Layer = Enum(
         'Layer', ['Silkscreen', 'Courtyard', 'Assembly', 'Documentation'])
-    Line = namedtuple(
-        'Line', ['layer', 'points', 'width'])
-    Circle = namedtuple(
-        'Circle', ['layer', 'center', 'radius'])
-    Pad = namedtuple(
-        'Pad', ['number', 'center', 'size'])
+
+    class Line(object):
+        def __init__(self, layer, points, width):
+            self.layer = layer
+            self.points = points
+            self.width = width
+
+    class Circle(object):
+        def __init__(self, layer, center, radius):
+            self.layer = layer
+            self.center = center
+            self.radius = radius
+
+    class Pad(object):
+        def __init__(self, number, center, size, square=True):
+            self.number = number
+            self.center = center
+            self.size = size
+            self.square = square
     
 class Dimension(object):
     """Records a dimension with tolerances."""
@@ -463,7 +541,7 @@ class LandPatternSize(object):
     #
     
     @classmethod
-    def gullwing_leads(cls, profile, A, L, T, pitch):
+    def gullwing_leads(cls, profile, A, L, T, pitch=None):
         """Gull wing or outward-facing L leads.
 
         This profile notably covers ICs in the SOIC, SOP, SOT, SOD and
@@ -476,7 +554,7 @@ class LandPatternSize(object):
         Smin = L.min - 2*T.max
         if Smin <= A.max:
             heel = [0.25, 0.15, 0.05]
-        if pitch <= 0.625:
+        if pitch is not None and pitch <= 0.625:
             side = [0.01, -0.02, -0.04]
         return cls(toe[profile], heel[profile], side[profile], courtyard[profile])
 
@@ -601,7 +679,6 @@ class LandPatternSize(object):
                    0,
                    -0.04,
                    [0.5, 0.25, 0.1][profile])
-    SON = QFN
 
     @classmethod
     def MELF(cls, profile):
@@ -648,6 +725,9 @@ class LandPatternSize(object):
     PLCC = J_leads
     SOJ = J_leads
 
+    DFN = QFN
+    SON = QFN
+    
     chip_resistor = chip
     chip_capacitor = chip
     chip_inductor = chip
@@ -669,43 +749,18 @@ def _printret(x):
 def _rms(*args):
     return math.sqrt(sum(x**2 for x in args))
 
-def bounding_box(drawing):
-    xmin, xmax = 0, 0
-    ymin, ymax = 0, 0
-    for f in drawing:
-        if hasattr(f, 'layer') and f.layer not in (Drawing.Layer.Silkscreen, Drawing.Layer.Assembly):
-            continue
-        if isinstance(f, Drawing.Line):
-            for p in f.points:
-                xmin = min(xmin, p[0])
-                xmax = max(xmax, p[0])
-                ymin = min(ymin, p[1])
-                ymax = max(ymax, p[1])
-        elif isinstance(f, Drawing.Circle):
-            xmin = min(xmin, f.center[0] - f.radius)
-            xmax = max(xmax, f.center[0] + f.radius)
-            ymin = min(ymin, f.center[1] - f.radius)
-            ymax = max(ymax, f.center[1] + f.radius)
-        elif isinstance(f, Drawing.Pad):
-            xmin = min(xmin, f.center[0] - f.size[0]/2)
-            xmax = max(xmax, f.center[0] + f.size[0]/2)
-            ymin = min(ymin, f.center[1] - f.size[1]/2)
-            ymax = max(ymax, f.center[1] + f.size[1]/2)
-        else:
-            raise RuntimeError('Unexpected drawing feature type')
-    return (xmin, xmax), (ymin, ymax)
-
 def _courtyard(drawing, spec):
-    (xmin, xmax), (ymin, ymax) = bounding_box(drawing)
+    (xmin, xmax), (ymin, ymax) = drawing.bounding_box
     xmin -= spec.courtyard
     xmax += spec.courtyard
     ymin -= spec.courtyard
     ymax += spec.courtyard
 
-    drawing.append(Drawing.Line(layer=Drawing.Layer.Courtyard,
-                                points=[(xmin, ymin),
-                                        (xmax, ymin),
-                                        (xmax, ymax),
-                                        (xmin, ymax),
-                                        (xmin, ymin)],
-                                width=PenWidth))
+    drawing.features.append(
+        Drawing.Line(layer=Drawing.Layer.Courtyard,
+                     points=[(xmin, ymin),
+                             (xmax, ymin),
+                             (xmax, ymax),
+                             (xmin, ymax),
+                             (xmin, ymin)],
+                     width=PenWidth))

@@ -137,6 +137,8 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
     pad_ud_center = (Gud + pad_ud_length)/2
 
     pad_width = spec.PadWidth(W)
+    if pitch - pad_width < 0.01:
+        raise InfeasibleFootprint('Pad width is {0}, adjacent pins will short together (pitch {1})'.format(pad_width, pitch))
 
     def pin_line(pad_center, pad_size, pin_origin, pin_size, offset, number, count):
         pad_center = list(pad_center)
@@ -201,12 +203,20 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
         # Pull the left/right lines back to just a notch at the top
         # and bottom.
         ystop = (pins_leftright/2-0.5)*pitch + pad_width/2 + PenWidth
-        assert ystop < y
+        # If the pads are too close to the edge of the chip, pull the
+        # silkscreen back away from the pad.
+        if ystop > y:
+            x = Glr/2 - PenWidth
+            ystop = None
     if pins_updown > 0 and y > (Gud/2 - PenWidth):
         # Pull the top/bottom lines back to just a notch at the left
         # and right.
         xstop = (pins_updown/2-0.5)*pitch + pad_width/2 + PenWidth
-        assert xstop < x
+        # If the pads are too close to the edge of the chip, pull the
+        # silkscreen back away from the pad.
+        if xstop > x:
+            y = Gud/2 - PenWidth
+            xstop = None
 
     if ystop is None:
         ret.features += [

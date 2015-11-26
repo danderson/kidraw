@@ -170,6 +170,34 @@ def ssop(profile):
         pins_leftright=8, pins_updown=0, spec=spec)
 
 @drawing
+def sc70(profile):
+    """SCJW-8"""
+    A = ipc.Dimension.from_nominal(1.75, 0.1)
+    B = ipc.Dimension.from_nominal(2, 0.2)
+    L = ipc.Dimension.from_nominal(2.2, 0.2)
+    T = ipc.Dimension.from_nominal(0.45, 0.1)
+    W = ipc.Dimension.from_nominal(0.225, 0.075)
+    pitch = 0.5
+    spec = ipc.LandPatternSize.SOJ(profile)
+    return ipc.in_line_pin_device(
+        A=A, B=B, LA=L, LB=B, T=T, W=W, pitch=pitch,
+        pins_leftright=4, pins_updown=0, spec=spec)
+
+@drawing
+def tsopj(profile):
+    """AAT1232 step-up converter"""
+    A = ipc.Dimension.from_nominal(2.4, 0.1)
+    B = ipc.Dimension.from_nominal(3, 0.1)
+    L = ipc.Dimension.from_nominal(2.85, 0.2)
+    T = ipc.Dimension.from_nominal(0.45, 0.15)
+    W = ipc.Dimension.from_nominal(0.2, 0.1, 0.05)
+    pitch = 0.5
+    spec = ipc.LandPatternSize.SOJ(profile)
+    return ipc.in_line_pin_device(
+        A=A, B=B, LA=L, LB=B, T=T, W=W, pitch=pitch,
+        pins_leftright=6, pins_updown=0, spec=spec)
+
+@drawing
 def chip(profile, size, polarized):
     if size == '0402':
         A = ipc.Dimension.from_nominal(1, 0.05)
@@ -234,6 +262,8 @@ for p, l in PROFILE.items():
         ('8-DFN-'+l, dfn(p)),
         ('8-SOIC-'+l, soic(p)),
         ('16-SSOP-'+l, ssop(p)),
+        ('8-SC70-'+l, sc70(p)),
+        ('12-TSOPJ-'+l, tsopj(p)),
     ])
     for polarized in (True, False):
         pol = 'P' if polarized else ''

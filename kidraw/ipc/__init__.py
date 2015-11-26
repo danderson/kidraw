@@ -1,3 +1,9 @@
+"""Compute SMD land pattern dimensions based on IPC-7351B.
+
+This module is deliberately decoupled from kidraw's drawing routines,
+so that the output of the math can be reused by other projects if
+desired.
+"""
 from __future__ import division
 from collections import namedtuple
 from enum import Enum
@@ -350,6 +356,10 @@ def sot23_3(A, B, L, T, W, pitch, spec):
                 (A.nominal/2, -B.nominal/2),
                 (A.nominal/2, -X/2-PenWidth),
             ],
+            width=PenWidth),
+        Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[(-A.nominal/2, X/2), (-A.nominal/2, -X/2)],
             width=PenWidth),
 
         Drawing.Line(

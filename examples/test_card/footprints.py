@@ -6,6 +6,7 @@ footprints one one shot.
 """
 
 from kidraw import ipc
+from kidraw.ipc import reference as ref
 
 class Node(object):
     def __init__(self, x=0, y=0, w=800, h=None):
@@ -212,32 +213,6 @@ def tsopj(profile):
         pins_leftright=6, pins_updown=0, spec=spec)
 
 @drawing
-def chip(profile, size, polarized):
-    if size == '0402':
-        A = ipc.Dimension.from_nominal(1, 0.05)
-        B = ipc.Dimension.from_nominal(0.5, 0.05)
-        T = ipc.Dimension.from_nominal(0.2, 0.1)
-    elif size == '0603':
-        A = ipc.Dimension.from_nominal(1.55, 0.05)
-        B = ipc.Dimension.from_nominal(0.85, 0.1)
-        T = ipc.Dimension.from_nominal(0.3, 0.15, 0.2)
-    elif size == '0805':
-        A = ipc.Dimension.from_nominal(2, 0.1)
-        B = ipc.Dimension.from_nominal(1.25, 0.15)
-        T = ipc.Dimension.from_nominal(0.4, 0.1, 0.2)
-    elif size == '1206':
-        A = ipc.Dimension.from_nominal(3.2, 0.1, 0.2)
-        B = ipc.Dimension.from_nominal(1.6, 0.15)
-        T = ipc.Dimension.from_nominal(0.5, 0.25)
-    else:
-        raise ValueError('unknown chip spec')
-
-    return ipc.two_terminal_symmetric_device(
-        A=A, B=B, L=A, T=T, W=B,
-        spec=ipc.LandPatternSize.chip(profile, A),
-        polarized=polarized)
-
-@drawing
 def SOD(profile, polarized):
     A = ipc.Dimension(2.55, 2.85)
     B = ipc.Dimension(1.4, 1.7)
@@ -317,9 +292,10 @@ for p, l in PROFILE.items():
     ])
     for polarized in (True, False):
         pol = 'P' if polarized else ''
-        for size in ('0402', '0603', '0805', '1206'):
-            fps.append(('%s-%s-%s' % (size, pol, l),
-                        chip(p, size, polarized)))
+        for n in dir(ref):
+            if n.startswith('imperial'):
+                fps.append(('{0}-{1}-{2}'.format(n[8:], pol, l),
+                            getattr(ref, n)(p, pol)))
         fps.append(('SOD-%s-%s' % (pol, l), SOD(p, polarized)))
         fps.append(('Molded-%s-%s' % (pol, l), Molded(p, polarized)))
         fps.append(('MELF-%s-%s' % (pol, l), MELF(p, polarized)))

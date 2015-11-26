@@ -4,7 +4,7 @@ from enum import Enum
 import math
 
 PenWidth = 0.15
-AssemblyPenWidth = 0.1
+AssemblyPenWidth = 0.075
 
 class InfeasibleFootprint(Exception):
     pass
@@ -128,170 +128,80 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
     """
     ret = Drawing()
 
-    def pin_line(pad_center, pad_size, pin_tr, pin_size, pin_leg, offset, number, count):
-        pad_center = list(pad_center)
-        pin_tr = list(pin_tr)
-        for n in range(number, number+count):
-            ret.features.extend([
-                Drawing.Pad(number=n,
-                            center=tuple(pad_center),
-                            size=pad_size,
-                            obround=(n != 1)),
-                Drawing.Line(layer=Drawing.Layer.Assembly,
-                             points=[(pin_tr[0], pin_tr[1]),
-                                     (pin_tr[0]+pin_size[0], pin_tr[1]),
-                                     (pin_tr[0]+pin_size[0], pin_tr[1]+pin_size[1]),
-                                     (pin_tr[0], pin_tr[1]+pin_size[1]),
-                                     (pin_tr[0], pin_tr[1])],
-                             width=AssemblyPenWidth),
-            ])
-            if pin_leg[0] != 0:
-                ret.features.extend([
-                    Drawing.Line(layer=Drawing.Layer.Assembly,
-                                 points=[(pin_tr[0], pad_center[1]),
-                                         (pin_tr[0]+pin_leg[0],
-                                          pad_center[1])],
-                                 width=AssemblyPenWidth),
-                ])
-            if pin_leg[1] != 0:
-                ret.features.extend([
-                    Drawing.Line(layer=Drawing.Layer.Assembly,
-                                 points=[(pad_center[0], pin_tr[1]),
-                                         (pad_center[0],
-                                          pin_tr[1]+pin_leg[1])],
-                                 width=AssemblyPenWidth),
-                ])                
-            pad_center[0] += offset[0]
-            pad_center[1] += offset[1]
-            pin_tr[0] += offset[0]
-            pin_tr[1] += offset[1]
+    def r(x, y, a):
+        a = math.radians(a)
+        return (x*math.cos(a) - y*math.sin(a),
+                x*math.sin(a) + y*math.cos(a))
 
-    Zlr, Glr = spec.OuterPadSpan(LA, T), spec.InnerPadSpan(LA, T)
-    pad_lr_length = (Zlr - Glr)/2
-    pad_lr_center = (Glr + pad_lr_length)/2
+    def rd(w, h, a):
+        if a/90 % 2 == 0:
+            return w, h
+        else:
+            return h, w
 
-    Zud, Gud = spec.OuterPadSpan(LB, T), spec.InnerPadSpan(LB, T)
-    pad_ud_length = (Zud - Gud)/2
-    pad_ud_center = (Gud + pad_ud_length)/2
+    def pin_line(A, L, T, W, pitch, start_pin, num_pins, rotation):
+        Z, G = spec.OuterPadSpan(L, T), spec.InnerPadSpan(L, T)
+        pad_width = spec.PadWidth(W)
+        pad_len = (Z-G)/2
+        pad_x = (Z+G)/4
 
-    pad_width = spec.PadWidth(W)
-    if pitch - pad_width < 0.01:
-        raise InfeasibleFootprint('Pad width is {0}, adjacent pins will short together (pitch {1})'.format(pad_width, pitch))
-    
-    pad_lr_y = (pins_leftright/2-0.5)*pitch
-    pin_lr_tr = (LA.nominal/2 - T.nominal, pad_lr_y+W.nominal/2)
-    pin_lr_size = (T.nominal, W.nominal)
-    pin_lr_leg = (max(0, pin_lr_tr[0] - A.nominal/2), 0)
+        pin_width = W.nominal
+        pin_len = T.nominal
+        pin_x = (L.nominal-T.nominal)/2
 
-    pad_ud_x = (pins_updown/2-0.5)*pitch
-    pin_ud_tl = (pad_lr_y+W.nominal/2, LB.nominal/2 - T.nominal)
-    pin_ud_size = (W.nominal, T.nominal)
-    pin_ud_leg = (0, max(0, pin_ud_tl[1] - B.nominal/2))
-
-    pin_line((-pad_lr_center, pad_lr_y),
-             (pad_lr_length, pad_width),
-             (-pin_lr_tr[0], pin_lr_tr[1]),
-             (-pin_lr_size[0], -pin_lr_size[1]),
-             (pin_lr_leg[0], pin_lr_leg[1]),
-             (0, -pitch),
-             1,
-             pins_leftright)
-    pin_line((-pad_ud_x, -pad_ud_center),
-             (pad_width, pad_ud_length),
-             (-pin_ud_tl[0], -pin_ud_tl[1]),
-             (pin_ud_size[0], -pin_ud_size[1]),
-             (pin_ud_leg[0], pin_ud_leg[1]),
-             (pitch, 0),
-             pins_leftright+1,
-             pins_updown)
-    pin_line((pad_lr_center, -pad_lr_y),
-             (pad_lr_length, pad_width),
-             (pin_lr_tr[0], -pin_lr_tr[1]),
-             (pin_lr_size[0], pin_lr_size[1]),
-             (-pin_lr_leg[0], -pin_lr_leg[1]),
-             (0, pitch),
-             pins_leftright+pins_updown+1, pins_leftright)
-    pin_line((pad_ud_x, pad_ud_center),
-             (pad_width, pad_ud_length),
-             (pin_ud_tl[0], pin_ud_tl[1]),
-             (-pin_ud_size[0], pin_ud_size[1]),
-             (-pin_ud_leg[0], -pin_ud_leg[1]),
-             (-pitch, 0),
-             pins_leftright+pins_updown+pins_leftright+1,
-             pins_updown)
-
-    x, y = A.nominal/2, B.nominal/2
-    xstop, ystop = None, None
-    if pins_leftright > 0 and x > (Glr/2 - PenWidth):
-        # Pull the left/right lines back to just a notch at the top
-        # and bottom.
-        ystop = (pins_leftright/2-0.5)*pitch + pad_width/2 + PenWidth
-        # If the pads are too close to the edge of the chip, pull the
-        # silkscreen back away from the pad.
-        if ystop > y:
-            x = Glr/2 - PenWidth
-            ystop = None
-    if pins_updown > 0 and y > (Gud/2 - PenWidth):
-        # Pull the top/bottom lines back to just a notch at the left
-        # and right.
-        xstop = (pins_updown/2-0.5)*pitch + pad_width/2 + PenWidth
-        # If the pads are too close to the edge of the chip, pull the
-        # silkscreen back away from the pad.
-        if xstop > x:
-            y = Gud/2 - PenWidth
-            xstop = None
-
-    if ystop is None:
-        ret.features += [
-            Drawing.Line(layer=Drawing.Layer.Silkscreen,
-                         points=[(-x, y), (-x, -y)],
-                         width=PenWidth),
-            Drawing.Line(layer=Drawing.Layer.Silkscreen,
-                         points=[(x, y), (x, -y)],
-                         width=PenWidth),
-        ]
-    else:
-        ret.features += [
-            Drawing.Line(layer=Drawing.Layer.Silkscreen,
-                         points=[(-x, y), (-x, ystop)],
-                         width=PenWidth),
-            Drawing.Line(layer=Drawing.Layer.Silkscreen,
-                         points=[(-x, -y), (-x, -ystop)],
-                         width=PenWidth),
-
-            Drawing.Line(layer=Drawing.Layer.Silkscreen,
-                         points=[(x, y), (x, ystop)],
-                         width=PenWidth),
-            Drawing.Line(layer=Drawing.Layer.Silkscreen,
-                         points=[(x, -y), (x, -ystop)],
-                         width=PenWidth),
-        ]
+        hip_x = A.nominal/2
         
-    if xstop is None:
-        ret.features += [
-            Drawing.Line(layer=Drawing.Layer.Silkscreen,
-                         points=[(-x, y), (x, y)],
-                         width=PenWidth),
-            Drawing.Line(layer=Drawing.Layer.Silkscreen,
-                         points=[(-x, -y), (x, -y)],
-                         width=PenWidth),
-        ]
-    else:
-        ret.features += [
-            Drawing.Line(layer=Drawing.Layer.Silkscreen,
-                         points=[(-x, y), (-xstop, y)],
-                         width=PenWidth),
-            Drawing.Line(layer=Drawing.Layer.Silkscreen,
-                         points=[(x, y), (xstop, y)],
-                         width=PenWidth),
+        y = (num_pins/2-0.5)*pitch
+        
+        for n in range(start_pin, start_pin+num_pins):
+            ret.features.append(
+                Drawing.Pad(number=n,
+                            center=r(-pad_x, y, rotation),
+                            size=rd(pad_len, pad_width, rotation),
+                            obround=(n != 1)))
+            if n == 1:
+                ret.features.append(Drawing.Circle(
+                    layer=Drawing.Layer.Silkscreen,
+                    center=(-pad_x-pad_len/2-2*PenWidth, y),
+                    radius=PenWidth))
+            ret.features.append(
+                Drawing.Line(
+                    layer=Drawing.Layer.Assembly,
+                    points=[
+                        r(-pin_x+pin_len/2, y+pin_width/2, rotation),
+                        r(-pin_x-pin_len/2, y+pin_width/2, rotation),
+                        r(-pin_x-pin_len/2, y-pin_width/2, rotation),
+                        r(-pin_x+pin_len/2, y-pin_width/2, rotation),
+                        r(-pin_x+pin_len/2, y+pin_width/2, rotation),
+                    ],
+                    width=AssemblyPenWidth))
 
-            Drawing.Line(layer=Drawing.Layer.Silkscreen,
-                         points=[(-x, -y), (-xstop, -y)],
-                         width=PenWidth),
-            Drawing.Line(layer=Drawing.Layer.Silkscreen,
-                         points=[(x, -y), (xstop, -y)],
-                         width=PenWidth),
-        ]
+            if hip_x < pin_x-(pin_len/2):
+                k = pin_x-pin_len/2
+                ret.features.append(
+                    Drawing.Line(
+                        layer=Drawing.Layer.Assembly,
+                        points=[
+                            r(-hip_x, y+pin_width/2, rotation),
+                            r(-k, y+pin_width/2, rotation),
+                            r(-k, y-pin_width/2, rotation),
+                            r(-hip_x, y-pin_width/2, rotation),
+                        ],
+                        width=AssemblyPenWidth))
+
+            y -= pitch
+
+    pin_line(A=A, L=LA, T=T, W=W, pitch=pitch,
+             start_pin=1, num_pins=pins_leftright, rotation=0)
+    pin_line(A=B, L=LB, T=T, W=W, pitch=pitch,
+             start_pin=pins_leftright+1,
+             num_pins=pins_updown, rotation=90)
+    pin_line(A=A, L=LA, T=T, W=W, pitch=pitch,
+             start_pin=pins_leftright+pins_updown+1,
+             num_pins=pins_leftright, rotation=180)
+    pin_line(A=B, L=LB, T=T, W=W, pitch=pitch,
+             start_pin=2*pins_leftright+pins_updown+1,
+             num_pins=pins_updown, rotation=270)
 
     ret.features += [
         Drawing.Line(
@@ -305,13 +215,87 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
 
         Drawing.Line(
             layer=Drawing.Layer.Documentation,
-            points=[(pad_width/2, 0), (-pad_width/2, 0)],
+            points=[(A.nominal/8, 0), (-A.nominal/8, 0)],
             width=PenWidth),
         Drawing.Line(
             layer=Drawing.Layer.Documentation,
-            points=[(0, pad_width/2), (0, -pad_width/2)],
+            points=[(0, A.nominal/8), (0, -A.nominal/8)],
             width=PenWidth),
     ]
+
+    # Silkscreen.
+    x, y = A.nominal, B.nominal
+    x2, y2 = None, None
+
+    if (x >= spec.InnerPadSpan(LA, T)-PenWidth and
+        x <= spec.OuterPadSpan(LA, T)+PenWidth):
+        # Vertical silkscreen would overlap with the L/R pins, so pull
+        # back to just corner notches.
+        y2 = pins_leftright*pitch+2*PenWidth
+        # Oops, the L/R pads come too close to the T/B edges. Pull the
+        # entire outline out.
+        if y2 > y:
+            y = y2
+    if (pins_updown > 0 and
+        y >= spec.InnerPadSpan(LB, T)-PenWidth and
+        y <= spec.OuterPadSpan(LB, T)+PenWidth):
+        x2 = pins_updown*pitch+2*PenWidth
+        if x2 > x:
+            x = x2
+
+    if x2 is None:
+        ret.features.append(Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[(-x/2, y/2), (x/2, y/2)],
+            width=PenWidth))
+        ret.features.append(Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[(-x/2, -y/2), (x/2, -y/2)],
+            width=PenWidth))
+    else:
+        ret.features.append(Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[(-x/2, y/2), (-x2/2, y/2)],
+            width=PenWidth))
+        ret.features.append(Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[(x/2, y/2), (x2/2, y/2)],
+            width=PenWidth))
+        ret.features.append(Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[(-x/2, -y/2), (-x2/2, -y/2)],
+            width=PenWidth))
+        ret.features.append(Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[(x/2, -y/2), (x2/2, -y/2)],
+            width=PenWidth))
+
+    if y2 is None:
+        ret.features.append(Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[(-x/2, y/2), (-x/2, -y/2)],
+            width=PenWidth))
+        ret.features.append(Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[(x/2, y/2), (x/2, -y/2)],
+            width=PenWidth))
+    else:
+        ret.features.append(Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[(-x/2, y/2), (-x/2, y2/2)],
+            width=PenWidth))
+        ret.features.append(Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[(-x/2, -y/2), (-x/2, -y2/2)],
+            width=PenWidth))
+        ret.features.append(Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[(x/2, y/2), (x/2, y2/2)],
+            width=PenWidth))
+        ret.features.append(Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[(x/2, -y/2), (x/2, -y2/2)],
+            width=PenWidth))
     
     _courtyard(ret, spec)
     return ret

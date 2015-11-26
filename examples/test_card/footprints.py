@@ -123,6 +123,20 @@ def qfn(profile):
         spec=ipc.LandPatternSize.QFN(profile))
 
 @drawing
+def pqfn(profile):
+    """QFN with pulled back leads"""
+    A = ipc.Dimension(3.9, 4.1)
+    L = ipc.Dimension(3.4, 3.6)
+    T = ipc.Dimension(0.3, 0.5)
+    W = ipc.Dimension(0.18, 0.30)
+    pitch = 0.5
+
+    return ipc.in_line_pin_device(
+        A=A, B=A, LA=L, LB=L, T=T, W=W, pitch=pitch,
+        pins_leftright=5, pins_updown=5,
+        spec=ipc.LandPatternSize.QFN(profile))
+
+@drawing
 def dfn(profile):
     """PIC12F609"""
     A = ipc.Dimension.from_nominal(3, 0.1)
@@ -255,10 +269,10 @@ PROFILE = {
 
 fps = []
 for p, l in PROFILE.items():
-#for p in (ipc.LandPatternSize.Nominal,):
     fps.extend([
         ('32-TQFP-'+l, tqfp(p)),
         ('24-QFN-'+l, qfn(p)),
+        ('20-PQFN-'+l, pqfn(p)),
         ('8-DFN-'+l, dfn(p)),
         ('8-SOIC-'+l, soic(p)),
         ('16-SSOP-'+l, ssop(p)),

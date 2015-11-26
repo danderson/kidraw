@@ -89,7 +89,7 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
         if polarized:
             ret.features.append(Drawing.Circle(
                 layer=Drawing.Layer.Silkscreen,
-                center=(-x-0.2, y),
+                center=(-x-0.3, y),
                 radius=0.1))
     else:
         # Silkscreen is within the pads.
@@ -329,10 +329,10 @@ class Drawing(object):
         for f in self.features:
             if isinstance(f, Drawing.Line):
                 for p in f.points:
-                    xmin = min(xmin, p[0])
-                    xmax = max(xmax, p[0])
-                    ymin = min(ymin, p[1])
-                    ymax = max(ymax, p[1])
+                    xmin = min(xmin, p[0] - f.width/2)
+                    xmax = max(xmax, p[0] + f.width/2)
+                    ymin = min(ymin, p[1] - f.width/2)
+                    ymax = max(ymax, p[1] + f.width/2)
             elif isinstance(f, Drawing.Circle):
                 xmin = min(xmin, f.center[0] - f.radius)
                 xmax = max(xmax, f.center[0] + f.radius)

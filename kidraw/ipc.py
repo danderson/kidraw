@@ -6,6 +6,9 @@ import math
 PenWidth = 0.15
 AssemblyPenWidth = 0.1
 
+class InfeasibleFootprint(Exception):
+    pass
+
 def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
     """Returns drawing for a 2-terminal symmetric device.
 
@@ -529,7 +532,10 @@ class LandPatternSize(object):
         S = Dimension(L.min - 2*T.max + rms/2,
                       L.max - 2*T.min - rms/2)
         # and use it to calculate G(min).
-        return self._round_down(S.max - 2*self.heel - _rms(S.tolerance, self.pcb_tolerance, self.place_tolerance))
+        Gmin = self._round_down(S.max - 2*self.heel - _rms(S.tolerance, self.pcb_tolerance, self.place_tolerance))
+        if Gmin <= 0:
+            raise InfeasibleFootprint('Inner pad span is {0}, pads will short together'.format(Gmin))
+        return Gmin
     
     def PadWidth(self, W):
         """Returns the pad width given component pin width.

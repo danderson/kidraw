@@ -120,14 +120,20 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
     _courtyard(ret, spec)
     return ret
 
-def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, spec):
-    """Returns drawing for a dual/quad in-line symmetric device.
+def _pin_line(ret, spec, A, L, T, W, pitch, start_pin, num_pins, rotation):
+    Z, G = spec.OuterPadSpan(L, T), spec.InnerPadSpan(L, T)
+    pad_width = spec.PadWidth(W)
+    pad_len = (Z-G)/2
+    pad_x = (Z+G)/4
 
-    This is a generic footprint builder that will accept any
-    LandPatternSize.
-    """
-    ret = Drawing()
+    pin_width = W.nominal
+    pin_len = T.nominal
+    pin_x = (L.nominal-T.nominal)/2
 
+    hip_x = A.nominal/2
+        
+    y = (num_pins/2-0.5)*pitch
+        
     def r(x, y, a):
         a = math.radians(a)
         return (x*math.cos(a) - y*math.sin(a),
@@ -139,69 +145,63 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
         else:
             return h, w
 
-    def pin_line(A, L, T, W, pitch, start_pin, num_pins, rotation):
-        Z, G = spec.OuterPadSpan(L, T), spec.InnerPadSpan(L, T)
-        pad_width = spec.PadWidth(W)
-        pad_len = (Z-G)/2
-        pad_x = (Z+G)/4
+    for n in range(start_pin, start_pin+num_pins):
+        ret.features.append(
+            Drawing.Pad(number=n,
+                        center=r(-pad_x, y, rotation),
+                        size=rd(pad_len, pad_width, rotation),
+                        obround=(n != 1)))
+        if n == 1:
+            ret.features.append(Drawing.Circle(
+                layer=Drawing.Layer.Silkscreen,
+                center=(-pad_x-pad_len/2-2*PenWidth, y),
+                radius=0.1))
+        ret.features.append(
+            Drawing.Line(
+                layer=Drawing.Layer.Assembly,
+                points=[
+                    r(-pin_x+pin_len/2, y+pin_width/2, rotation),
+                    r(-pin_x-pin_len/2, y+pin_width/2, rotation),
+                    r(-pin_x-pin_len/2, y-pin_width/2, rotation),
+                    r(-pin_x+pin_len/2, y-pin_width/2, rotation),
+                    r(-pin_x+pin_len/2, y+pin_width/2, rotation),
+                ],
+                width=AssemblyPenWidth))
 
-        pin_width = W.nominal
-        pin_len = T.nominal
-        pin_x = (L.nominal-T.nominal)/2
-
-        hip_x = A.nominal/2
-        
-        y = (num_pins/2-0.5)*pitch
-        
-        for n in range(start_pin, start_pin+num_pins):
-            ret.features.append(
-                Drawing.Pad(number=n,
-                            center=r(-pad_x, y, rotation),
-                            size=rd(pad_len, pad_width, rotation),
-                            obround=(n != 1)))
-            if n == 1:
-                ret.features.append(Drawing.Circle(
-                    layer=Drawing.Layer.Silkscreen,
-                    center=(-pad_x-pad_len/2-2*PenWidth, y),
-                    radius=0.1))
+        if hip_x < pin_x-(pin_len/2):
+            k = pin_x-pin_len/2
             ret.features.append(
                 Drawing.Line(
                     layer=Drawing.Layer.Assembly,
                     points=[
-                        r(-pin_x+pin_len/2, y+pin_width/2, rotation),
-                        r(-pin_x-pin_len/2, y+pin_width/2, rotation),
-                        r(-pin_x-pin_len/2, y-pin_width/2, rotation),
-                        r(-pin_x+pin_len/2, y-pin_width/2, rotation),
-                        r(-pin_x+pin_len/2, y+pin_width/2, rotation),
+                        r(-hip_x, y+pin_width/2, rotation),
+                        r(-k, y+pin_width/2, rotation),
+                        r(-k, y-pin_width/2, rotation),
+                        r(-hip_x, y-pin_width/2, rotation),
                     ],
                     width=AssemblyPenWidth))
+            
+        y -= pitch
 
-            if hip_x < pin_x-(pin_len/2):
-                k = pin_x-pin_len/2
-                ret.features.append(
-                    Drawing.Line(
-                        layer=Drawing.Layer.Assembly,
-                        points=[
-                            r(-hip_x, y+pin_width/2, rotation),
-                            r(-k, y+pin_width/2, rotation),
-                            r(-k, y-pin_width/2, rotation),
-                            r(-hip_x, y-pin_width/2, rotation),
-                        ],
-                        width=AssemblyPenWidth))
+def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, spec):
+    """Returns drawing for a dual/quad in-line symmetric device.
 
-            y -= pitch
+    This is a generic footprint builder that will accept any
+    LandPatternSize.
+    """
+    ret = Drawing()
 
-    pin_line(A=A, L=LA, T=T, W=W, pitch=pitch,
-             start_pin=1, num_pins=pins_leftright, rotation=0)
-    pin_line(A=B, L=LB, T=T, W=W, pitch=pitch,
-             start_pin=pins_leftright+1,
-             num_pins=pins_updown, rotation=90)
-    pin_line(A=A, L=LA, T=T, W=W, pitch=pitch,
-             start_pin=pins_leftright+pins_updown+1,
-             num_pins=pins_leftright, rotation=180)
-    pin_line(A=B, L=LB, T=T, W=W, pitch=pitch,
-             start_pin=2*pins_leftright+pins_updown+1,
-             num_pins=pins_updown, rotation=270)
+    _pin_line(ret=ret, spec=spec, A=A, L=LA, T=T, W=W, pitch=pitch,
+              start_pin=1, num_pins=pins_leftright, rotation=0)
+    _pin_line(ret=ret, spec=spec, A=B, L=LB, T=T, W=W, pitch=pitch,
+              start_pin=pins_leftright+1,
+              num_pins=pins_updown, rotation=90)
+    _pin_line(ret=ret, spec=spec, A=A, L=LA, T=T, W=W, pitch=pitch,
+              start_pin=pins_leftright+pins_updown+1,
+              num_pins=pins_leftright, rotation=180)
+    _pin_line(ret=ret, spec=spec, A=B, L=LB, T=T, W=W, pitch=pitch,
+              start_pin=2*pins_leftright+pins_updown+1,
+              num_pins=pins_updown, rotation=270)
 
     ret.features += [
         Drawing.Line(

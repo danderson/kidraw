@@ -53,7 +53,7 @@ def binpack(drawings, w):
     drawings = sorted(drawings, key=k)
     t = Node(w=w)
     for n, d in drawings:
-        w, h = d.length, d.width+30
+        w, h = d.length+10, d.width+30
         t.find_node(w, h).allocate((n, d), w, h)
     w, h = 0, 0
     for (_, d), x, y in t:
@@ -73,7 +73,31 @@ def binpack(drawings, w):
     out.append('</svg>')
     return '\n'.join(out)
 
-def tqfp():
+def drawing(f):
+    def run(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except ipc.InfeasibleFootprint:
+            r = ipc.Drawing()
+            r.features += [
+                ipc.Drawing.Line(
+                    layer=ipc.Drawing.Layer.Documentation,
+                    points=[(-1.5, -1.5), (1.5, 1.5)],
+                    width=ipc.PenWidth),
+                ipc.Drawing.Line(
+                    layer=ipc.Drawing.Layer.Documentation,
+                    points=[(-1.5, 1.5), (1.5, -1.5)],
+                    width=ipc.PenWidth),
+                ipc.Drawing.Line(
+                    layer=ipc.Drawing.Layer.Courtyard,
+                    points=[(-1.5, -1.5), (-1.5, 1.5), (1.5, 1.5), (1.5, -1.5), (-1.5, -1.5)],
+                    width=ipc.PenWidth),
+            ]
+            return r
+    return run
+
+@drawing
+def tqfp(profile):
     """STM32F042K6T6 microcontroller"""
     A = ipc.Dimension(6.8, 7.2)
     L = ipc.Dimension(8.8, 9.2)
@@ -81,41 +105,38 @@ def tqfp():
     W = ipc.Dimension(0.3, 0.45)
     pitch = 0.8
 
-    d = ipc.in_line_pin_device(
+    return ipc.in_line_pin_device(
         A, A, L, L, T, W, pitch, 8, 8,
-        ipc.LandPatternSize.QFP(
-            ipc.LandPatternSize.Most, A, L, T, pitch))
-    return ('32-TQFP', d)
+        ipc.LandPatternSize.QFP(profile, A, L, T, pitch))
 
-def qfn():
+@drawing
+def qfn(profile):
     """MAX3738 laser driver"""
     A = ipc.Dimension(3.9, 4.1)
     T = ipc.Dimension(0.3, 0.5)
     W = ipc.Dimension(0.18, 0.30)
     pitch = 0.5
 
-    spec = ipc.LandPatternSize.QFN(
-        profile=ipc.LandPatternSize.Nominal)
-    d = ipc.in_line_pin_device(
+    return ipc.in_line_pin_device(
         A=A, B=A, LA=A, LB=A, T=T, W=W, pitch=pitch,
-        pins_leftright=6, pins_updown=6, spec=spec)
-    return ('24-QFN', d)
+        pins_leftright=6, pins_updown=6,
+        spec=ipc.LandPatternSize.QFN(profile))
 
-def dfn():
-    """PIC12F609 laser driver"""
+@drawing
+def dfn(profile):
+    """PIC12F609"""
     A = ipc.Dimension.from_nominal(3, 0.1)
     T = ipc.Dimension(0.2, 0.55)
     W = ipc.Dimension(0.25, 0.35)
     pitch = 0.65
 
-    spec = ipc.LandPatternSize.DFN(
-        profile=ipc.LandPatternSize.Nominal)
-    d = ipc.in_line_pin_device(
+    return ipc.in_line_pin_device(
         A=A, B=A, LA=A, LB=A, T=T, W=W, pitch=pitch,
-        pins_leftright=4, pins_updown=0, spec=spec)
-    return ('8-DFN', d)
+        pins_leftright=4, pins_updown=0,
+        spec=ipc.LandPatternSize.DFN(profile))
 
-def soic():
+@drawing
+def soic(profile):
     """PIC12F609 microcontroller"""
     A = ipc.Dimension.from_nominal(3.9, 0.1)
     B = ipc.Dimension.from_nominal(4.9, 0.1)
@@ -124,14 +145,14 @@ def soic():
     W = ipc.Dimension(0.31, 0.51)
     pitch = 1.27
     spec = ipc.LandPatternSize.SOIC(
-        profile=ipc.LandPatternSize.Nominal,
+        profile=profile,
         A=A, L=L, T=T, pitch=pitch)
-    d = ipc.in_line_pin_device(
+    return ipc.in_line_pin_device(
         A=A, B=B, LA=L, LB=B, T=T, W=W, pitch=pitch,
         pins_leftright=4, pins_updown=0, spec=spec)
-    return ('8-SOIC', d)
 
-def ssop():
+@drawing
+def ssop(profile):
     """Some MAX-something transceiver"""
     A = ipc.Dimension(5.2, 5.38)
     B = ipc.Dimension(6.07, 6.33)
@@ -141,76 +162,85 @@ def ssop():
     pitch = 0.65
 
     spec = ipc.LandPatternSize.SOP(
-        profile=ipc.LandPatternSize.Nominal,
+        profile=profile,
         A=A, L=L, T=T, pitch=pitch)
 
-    d = ipc.in_line_pin_device(
+    return ipc.in_line_pin_device(
         A=A, B=B, LA=L, LB=B, T=T, W=W, pitch=pitch,
         pins_leftright=8, pins_updown=0, spec=spec)
-    return ('16-SSOP', d)
 
-def chips():
-    ret = []
-    for p in ('', 'P'):
-        n = '0402'
+@drawing
+def chip(profile, size, polarized):
+    if size == '0402':
         A = ipc.Dimension.from_nominal(1, 0.05)
         B = ipc.Dimension.from_nominal(0.5, 0.05)
         T = ipc.Dimension.from_nominal(0.2, 0.1)
-        ret.append((n+p, ipc.two_terminal_symmetric_device(
-            A=A, B=B, L=A, T=T, W=B,
-            spec=ipc.LandPatternSize.chip(ipc.LandPatternSize.Nominal, A),
-            polarized=p)))
-
-        n = '0603'
+    elif size == '0603':
         A = ipc.Dimension.from_nominal(1.55, 0.05)
         B = ipc.Dimension.from_nominal(0.85, 0.1)
         T = ipc.Dimension.from_nominal(0.3, 0.15, 0.2)
-        ret.append((n+p, ipc.two_terminal_symmetric_device(
-            A=A, B=B, L=A, T=T, W=B,
-            spec=ipc.LandPatternSize.chip(ipc.LandPatternSize.Nominal, A),
-            polarized=p)))
-
-        n = '0805'
+    elif size == '0805':
         A = ipc.Dimension.from_nominal(2, 0.1)
         B = ipc.Dimension.from_nominal(1.25, 0.15)
         T = ipc.Dimension.from_nominal(0.4, 0.1, 0.2)
-        ret.append((n+p, ipc.two_terminal_symmetric_device(
-            A=A, B=B, L=A, T=T, W=B,
-            spec=ipc.LandPatternSize.chip(ipc.LandPatternSize.Nominal, A),
-            polarized=p)))
-        
-        n = '1206'
+    elif size == '1206':
         A = ipc.Dimension.from_nominal(3.2, 0.1, 0.2)
         B = ipc.Dimension.from_nominal(1.6, 0.15)
         T = ipc.Dimension.from_nominal(0.5, 0.25)
-        ret.append((n+p, ipc.two_terminal_symmetric_device(
-            A=A, B=B, L=A, T=T, W=B,
-            spec=ipc.LandPatternSize.chip(ipc.LandPatternSize.Nominal, A),
-            polarized=p)))
+    else:
+        raise ValueError('unknown chip spec')
 
-    return ret
+    return ipc.two_terminal_symmetric_device(
+        A=A, B=B, L=A, T=T, W=B,
+        spec=ipc.LandPatternSize.chip(profile, A),
+        polarized=polarized)
 
-def sod():
-    """Diodes Inc. SOD package"""
+@drawing
+def SOD(profile, polarized):
     A = ipc.Dimension(2.55, 2.85)
     B = ipc.Dimension(1.4, 1.7)
     L = ipc.Dimension(3.55, 3.85)
     T = ipc.Dimension(0.25, 0.4)
     W = ipc.Dimension.from_nominal(0.55, 0.1)
-    return ('SOD', ipc.two_terminal_symmetric_device(
+    return ipc.two_terminal_symmetric_device(
         A=A, B=B, L=L, T=T, W=W,
         spec=ipc.LandPatternSize.SOD(
-            ipc.LandPatternSize.Nominal, A=A, L=L, T=T),
-        polarized=False))
+            profile, A=A, L=L, T=T),
+        polarized=polarized)
 
+@drawing
+def Molded(profile, polarized):
+    A = ipc.Dimension.from_nominal(3.5, 0.2)
+    B = ipc.Dimension.from_nominal(2.8, 0.2)
+    T = ipc.Dimension.from_nominal(0.8, 0.3)
+    W = ipc.Dimension.from_nominal(2.2, 0.1)
+    return ipc.two_terminal_symmetric_device(
+        A=A, B=B, L=A, T=T, W=W,
+        spec=ipc.LandPatternSize.inward_L_leads(profile),
+        polarized=polarized)
 
-fps = [
-    tqfp(),
-    qfn(),
-    dfn(),
-    ssop(),
-    soic(),
-    sod(),
-] + chips()
+PROFILE = {
+    ipc.LandPatternSize.Most: 'M',
+    ipc.LandPatternSize.Nominal: 'N',
+    ipc.LandPatternSize.Least: 'L',
+}
 
-print binpack([(n, x.scale(30)) for n, x in fps], w=700)
+fps = []
+for p, l in PROFILE.items():
+#for p in (ipc.LandPatternSize.Nominal,):
+    fps.extend([
+        ('32-TQFP-'+l, tqfp(p)),
+        ('24-QFN-'+l, qfn(p)),
+        ('8-DFN-'+l, dfn(p)),
+        ('8-SOIC-'+l, soic(p)),
+        ('16-SSOP-'+l, ssop(p)),
+    ])
+    for polarized in (True, False):
+        pol = 'P' if polarized else ''
+        for size in ('0402', '0603', '0805', '1206'):
+            fps.append(('%s-%s-%s' % (size, pol, l),
+                        chip(p, size, polarized)))
+        fps.append(('SOD-%s-%s' % (pol, l), SOD(p, polarized)))
+        fps.append(('Molded-%s-%s' % (pol, l), Molded(p, polarized)))
+
+print binpack([(n, x.scale(30)) for n, x in fps], w=1200)

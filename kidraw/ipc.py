@@ -163,7 +163,7 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
                 ret.features.append(Drawing.Circle(
                     layer=Drawing.Layer.Silkscreen,
                     center=(-pad_x-pad_len/2-2*PenWidth, y),
-                    radius=PenWidth))
+                    radius=0.1))
             ret.features.append(
                 Drawing.Line(
                     layer=Drawing.Layer.Assembly,

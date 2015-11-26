@@ -174,7 +174,7 @@ def sc70(profile):
     """SCJW-8"""
     A = ipc.Dimension.from_nominal(1.75, 0.1)
     B = ipc.Dimension.from_nominal(2, 0.2)
-    L = ipc.Dimension.from_nominal(2.2, 0.2)
+    L = ipc.Dimension.from_nominal(2.1, 0.2)
     T = ipc.Dimension.from_nominal(0.45, 0.1)
     W = ipc.Dimension.from_nominal(0.225, 0.075)
     pitch = 0.5

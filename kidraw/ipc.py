@@ -128,6 +128,44 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
     """
     ret = Drawing()
 
+    def pin_line(pad_center, pad_size, pin_tr, pin_size, pin_leg, offset, number, count):
+        pad_center = list(pad_center)
+        pin_tr = list(pin_tr)
+        for n in range(number, number+count):
+            ret.features.extend([
+                Drawing.Pad(number=n,
+                            center=tuple(pad_center),
+                            size=pad_size,
+                            obround=(n != 1)),
+                Drawing.Line(layer=Drawing.Layer.Assembly,
+                             points=[(pin_tr[0], pin_tr[1]),
+                                     (pin_tr[0]+pin_size[0], pin_tr[1]),
+                                     (pin_tr[0]+pin_size[0], pin_tr[1]+pin_size[1]),
+                                     (pin_tr[0], pin_tr[1]+pin_size[1]),
+                                     (pin_tr[0], pin_tr[1])],
+                             width=AssemblyPenWidth),
+            ])
+            if pin_leg[0] != 0:
+                ret.features.extend([
+                    Drawing.Line(layer=Drawing.Layer.Assembly,
+                                 points=[(pin_tr[0], pad_center[1]),
+                                         (pin_tr[0]+pin_leg[0],
+                                          pad_center[1])],
+                                 width=AssemblyPenWidth),
+                ])
+            if pin_leg[1] != 0:
+                ret.features.extend([
+                    Drawing.Line(layer=Drawing.Layer.Assembly,
+                                 points=[(pad_center[0], pin_tr[1]),
+                                         (pad_center[0],
+                                          pin_tr[1]+pin_leg[1])],
+                                 width=AssemblyPenWidth),
+                ])                
+            pad_center[0] += offset[0]
+            pad_center[1] += offset[1]
+            pin_tr[0] += offset[0]
+            pin_tr[1] += offset[1]
+
     Zlr, Glr = spec.OuterPadSpan(LA, T), spec.InnerPadSpan(LA, T)
     pad_lr_length = (Zlr - Glr)/2
     pad_lr_center = (Glr + pad_lr_length)/2
@@ -139,63 +177,48 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
     pad_width = spec.PadWidth(W)
     if pitch - pad_width < 0.01:
         raise InfeasibleFootprint('Pad width is {0}, adjacent pins will short together (pitch {1})'.format(pad_width, pitch))
+    
+    pad_lr_y = (pins_leftright/2-0.5)*pitch
+    pin_lr_tr = (LA.nominal/2 - T.nominal, pad_lr_y+W.nominal/2)
+    pin_lr_size = (T.nominal, W.nominal)
+    pin_lr_leg = (max(0, pin_lr_tr[0] - A.nominal/2), 0)
 
-    def pin_line(pad_center, pad_size, pin_origin, pin_size, offset, number, count):
-        pad_center = list(pad_center)
-        pin_origin = list(pin_origin)
-        for n in range(number, number+count):
-            ret.features.extend([
-                Drawing.Pad(number=n,
-                            center=tuple(pad_center),
-                            size=pad_size,
-                            obround=(n != 1)),
-                Drawing.Line(layer=Drawing.Layer.Assembly,
-                             points=[(pin_origin[0], pin_origin[1]),
-                                     (pin_origin[0]+pin_size[0], pin_origin[1]),
-                                     (pin_origin[0]+pin_size[0], pin_origin[1]+pin_size[1]),
-                                     (pin_origin[0], pin_origin[1]+pin_size[1]),
-                                     (pin_origin[0], pin_origin[1])],
-                             width=AssemblyPenWidth),
-            ])
-            pad_center[0] += offset[0]
-            pad_center[1] += offset[1]
-            pin_origin[0] += offset[0]
-            pin_origin[1] += offset[1]
+    pad_ud_x = (pins_updown/2-0.5)*pitch
+    pin_ud_tl = (pad_lr_y+W.nominal/2, LB.nominal/2 - T.nominal)
+    pin_ud_size = (W.nominal, T.nominal)
+    pin_ud_leg = (0, max(0, pin_ud_tl[1] - B.nominal/2))
 
-    if LA.nominal - A.nominal <= 0:
-        pin_size_lr = (-T.nominal, W.nominal)
-    else:
-        pin_size_lr = ((LA.nominal-A.nominal)/2, W.nominal)
-
-    if LB.nominal - B.nominal <= 0:
-        pin_size_ud = (-W.nominal, -T.nominal)
-    else:
-        pin_size_ud = (-W.nominal, (LB.nominal-B.nominal)/2)
-
-    pin_line((-pad_lr_center, (pins_leftright/2-0.5)*pitch),
+    pin_line((-pad_lr_center, pad_lr_y),
              (pad_lr_length, pad_width),
-             (-A.nominal/2, (pins_leftright/2-0.5)*pitch + W.nominal/2),
-             (-pin_size_lr[0], -pin_size_lr[1]),
+             (-pin_lr_tr[0], pin_lr_tr[1]),
+             (-pin_lr_size[0], -pin_lr_size[1]),
+             (pin_lr_leg[0], pin_lr_leg[1]),
              (0, -pitch),
-             1, pins_leftright)
-    pin_line((-(pins_updown/2-0.5)*pitch, -pad_ud_center),
+             1,
+             pins_leftright)
+    pin_line((-pad_ud_x, -pad_ud_center),
              (pad_width, pad_ud_length),
-             (-(pins_updown/2-0.5)*pitch - W.nominal/2, -B.nominal/2),
-             (-pin_size_ud[0], -pin_size_ud[1]),
+             (-pin_ud_tl[0], -pin_ud_tl[1]),
+             (pin_ud_size[0], -pin_ud_size[1]),
+             (pin_ud_leg[0], pin_ud_leg[1]),
              (pitch, 0),
-             pins_leftright+1, pins_updown)
-    pin_line((pad_lr_center, -(pins_leftright/2-0.5)*pitch),
+             pins_leftright+1,
+             pins_updown)
+    pin_line((pad_lr_center, -pad_lr_y),
              (pad_lr_length, pad_width),
-             (A.nominal/2, -(pins_leftright/2-0.5)*pitch - W.nominal/2),
-             (pin_size_lr[0], pin_size_lr[1]),
+             (pin_lr_tr[0], -pin_lr_tr[1]),
+             (pin_lr_size[0], pin_lr_size[1]),
+             (-pin_lr_leg[0], -pin_lr_leg[1]),
              (0, pitch),
              pins_leftright+pins_updown+1, pins_leftright)
-    pin_line(((pins_updown/2-0.5)*pitch, pad_ud_center),
+    pin_line((pad_ud_x, pad_ud_center),
              (pad_width, pad_ud_length),
-             ((pins_updown/2-0.5)*pitch + W.nominal/2, B.nominal/2),
-             (pin_size_ud[0], pin_size_ud[1]),
+             (pin_ud_tl[0], pin_ud_tl[1]),
+             (-pin_ud_size[0], pin_ud_size[1]),
+             (-pin_ud_leg[0], -pin_ud_leg[1]),
              (-pitch, 0),
-             pins_leftright+pins_updown+pins_leftright+1, pins_updown)
+             pins_leftright+pins_updown+pins_leftright+1,
+             pins_updown)
 
     x, y = A.nominal/2, B.nominal/2
     xstop, ystop = None, None

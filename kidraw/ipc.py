@@ -183,47 +183,7 @@ def _pin_line(ret, spec, A, L, T, W, pitch, start_pin, num_pins, rotation):
             
         y -= pitch
 
-def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, spec):
-    """Returns drawing for a dual/quad in-line symmetric device.
-
-    This is a generic footprint builder that will accept any
-    LandPatternSize.
-    """
-    ret = Drawing()
-
-    _pin_line(ret=ret, spec=spec, A=A, L=LA, T=T, W=W, pitch=pitch,
-              start_pin=1, num_pins=pins_leftright, rotation=0)
-    _pin_line(ret=ret, spec=spec, A=B, L=LB, T=T, W=W, pitch=pitch,
-              start_pin=pins_leftright+1,
-              num_pins=pins_updown, rotation=90)
-    _pin_line(ret=ret, spec=spec, A=A, L=LA, T=T, W=W, pitch=pitch,
-              start_pin=pins_leftright+pins_updown+1,
-              num_pins=pins_leftright, rotation=180)
-    _pin_line(ret=ret, spec=spec, A=B, L=LB, T=T, W=W, pitch=pitch,
-              start_pin=2*pins_leftright+pins_updown+1,
-              num_pins=pins_updown, rotation=270)
-
-    ret.features += [
-        Drawing.Line(
-            layer=Drawing.Layer.Assembly,
-            points=[(A.nominal/2, B.nominal/2),
-                    (A.nominal/2, -B.nominal/2),
-                    (-A.nominal/2, -B.nominal/2),
-                    (-A.nominal/2, B.nominal/2),
-                    (A.nominal/2, B.nominal/2)],
-            width=AssemblyPenWidth),
-
-        Drawing.Line(
-            layer=Drawing.Layer.Documentation,
-            points=[(A.nominal/8, 0), (-A.nominal/8, 0)],
-            width=PenWidth),
-        Drawing.Line(
-            layer=Drawing.Layer.Documentation,
-            points=[(0, A.nominal/8), (0, -A.nominal/8)],
-            width=PenWidth),
-    ]
-
-    # Silkscreen.
+def _ild_silkscreen(ret, spec, A, B, LA, LB, T, pitch, pins_leftright, pins_updown):
     x, y = A.nominal, B.nominal
     x2, y2 = None, None
 
@@ -296,35 +256,165 @@ def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, s
             layer=Drawing.Layer.Silkscreen,
             points=[(x/2, -y/2), (x/2, -y2/2)],
             width=PenWidth))
-    
+
+        
+def in_line_pin_device(A, B, LA, LB, T, W, pitch, pins_leftright, pins_updown, spec):
+    """Returns drawing for a dual/quad in-line symmetric device.
+
+    This is a generic footprint builder that will accept any
+    LandPatternSize.
+    """
+    ret = Drawing()
+
+    _pin_line(ret=ret, spec=spec, A=A, L=LA, T=T, W=W, pitch=pitch,
+              start_pin=1, num_pins=pins_leftright, rotation=0)
+    _pin_line(ret=ret, spec=spec, A=B, L=LB, T=T, W=W, pitch=pitch,
+              start_pin=pins_leftright+1,
+              num_pins=pins_updown, rotation=90)
+    _pin_line(ret=ret, spec=spec, A=A, L=LA, T=T, W=W, pitch=pitch,
+              start_pin=pins_leftright+pins_updown+1,
+              num_pins=pins_leftright, rotation=180)
+    _pin_line(ret=ret, spec=spec, A=B, L=LB, T=T, W=W, pitch=pitch,
+              start_pin=2*pins_leftright+pins_updown+1,
+              num_pins=pins_updown, rotation=270)
+
+    ret.features += [
+        Drawing.Line(
+            layer=Drawing.Layer.Assembly,
+            points=[(A.nominal/2, B.nominal/2),
+                    (A.nominal/2, -B.nominal/2),
+                    (-A.nominal/2, -B.nominal/2),
+                    (-A.nominal/2, B.nominal/2),
+                    (A.nominal/2, B.nominal/2)],
+            width=AssemblyPenWidth),
+
+        Drawing.Line(
+            layer=Drawing.Layer.Documentation,
+            points=[(A.nominal/8, 0), (-A.nominal/8, 0)],
+            width=PenWidth),
+        Drawing.Line(
+            layer=Drawing.Layer.Documentation,
+            points=[(0, A.nominal/8), (0, -A.nominal/8)],
+            width=PenWidth),
+    ]
+
+    _ild_silkscreen(ret, spec, A, B, LA, LB, T, pitch, pins_leftright, pins_updown)
     _courtyard(ret, spec)
     return ret
 
-## Package classes.
+def sot23_3(A, B, L, T, W, pitch, spec):
+    ret = Drawing()
 
-def chip_device(profile, L, T, W, polarized):
-    """Returns drawing for a chip device.
+    _pin_line(ret,
+              spec=spec,
+              A=A, L=L, T=T, W=W,
+              pitch=2*pitch,
+              start_pin=1,
+              num_pins=2,
+              rotation=0)
+    _pin_line(ret,
+              spec=spec,
+              A=A, L=L, T=T, W=W,
+              pitch=pitch,
+              start_pin=3,
+              num_pins=1,
+              rotation=180)
 
-    Chip devices are rectangular packages named after their A and B
-    dimensions, e.g. 0805, 0603, 2012... Chip packages are commonly
-    used for resistors, capacitors, and LEDs.
-    """
-    lp = LandPatternSize.chip(profile, L.max)
-    return two_terminal_symmetric_device(A=L, B=W, L=L, T=T, W=W, spec=lp, polarized=polarized)
+    G = spec.InnerPadSpan(L, T)
+    X = spec.PadWidth(W)
 
-def molded_body_device(profile, L, T, W, polarized):
-    """Returns drawing for a molded body device.
+    ret.features.extend([
+        Drawing.Line(
+            layer=Drawing.Layer.Assembly,
+            points=[
+                (-A.nominal/2, -B.nominal/2),
+                (A.nominal/2, -B.nominal/2),
+                (A.nominal/2, B.nominal/2),
+                (-A.nominal/2, B.nominal/2),
+                (-A.nominal/2, -B.nominal/2),
+            ],
+            width=AssemblyPenWidth),
 
-    Molded body components have the electrical component encased in an
-    epoxy resin, with L-lead terminations folding under the component.
-    """
-    lp = LandPatternSize.inward_L_leads(profile)
-    return two_terminal_symmetric_device(A=L, B=W, L=L, T=T, W=W, spec=lp, polarized=polarized)
+        Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[
+                (-G/2+PenWidth, B.nominal/2),
+                (A.nominal/2, B.nominal/2),
+                (A.nominal/2, X/2+PenWidth),
+            ],
+            width=PenWidth),
+        Drawing.Line(
+            layer=Drawing.Layer.Silkscreen,
+            points=[
+                (-G/2+PenWidth, -B.nominal/2),
+                (A.nominal/2, -B.nominal/2),
+                (A.nominal/2, -X/2-PenWidth),
+            ],
+            width=PenWidth),
 
-def melf_device(profile, L, T, W, polarized):
-    """Returns drawing for a MELF (aka DO-213) body device."""
-    lp = LandPatternSize.MELF(profile)
-    return two_terminal_symmetric_device(A=L, B=W, L=L, T=T, W=W, spec=lp, polarized=polarized)
+        Drawing.Line(
+            layer=Drawing.Layer.Documentation,
+            points=[(-A.nominal/4, 0), (A.nominal/4, 0)],
+            width=PenWidth),
+        Drawing.Line(
+            layer=Drawing.Layer.Documentation,
+            points=[(0, -A.nominal/4), (0, A.nominal/4)],
+            width=PenWidth),
+    ])
+    _courtyard(ret, spec)
+    return ret
+
+def sot23_5(A, B, L, T, W, pitch, spec):
+    ret = Drawing()
+    _pin_line(ret,
+              spec=spec,
+              A=A, L=L, T=T, W=W,
+              pitch=pitch,
+              start_pin=1,
+              num_pins=3,
+              rotation=0)
+    _pin_line(ret,
+              spec=spec,
+              A=A, L=L, T=T, W=W,
+              pitch=2*pitch,
+              start_pin=4,
+              num_pins=2,
+              rotation=180)
+
+    _ild_silkscreen(ret, spec, A, B, L, B, T, pitch, 3, 0)
+
+    ret.features.extend([
+        Drawing.Line(
+            layer=Drawing.Layer.Assembly,
+            points=[
+                (-A.nominal/2, -B.nominal/2),
+                (A.nominal/2, -B.nominal/2),
+                (A.nominal/2, B.nominal/2),
+                (-A.nominal/2, B.nominal/2),
+                (-A.nominal/2, -B.nominal/2),
+            ],
+            width=AssemblyPenWidth),
+
+        Drawing.Line(
+            layer=Drawing.Layer.Documentation,
+            points=[(-A.nominal/4, 0), (A.nominal/4, 0)],
+            width=PenWidth),
+        Drawing.Line(
+            layer=Drawing.Layer.Documentation,
+            points=[(0, -A.nominal/4), (0, A.nominal/4)],
+            width=PenWidth),
+    ])
+    _courtyard(ret, spec)
+    return ret
+
+# TODO: TO252. DPAKs have a weird shape and the controlling dimensions
+# are annoyingly not very amenable to use of the IPC constants,
+# grmbl. Maybe it's better to put them exclusively in the JEDEC
+# package, and improvise the construction there.
+
+# TODO: SOT343. Annoyingly asymmetric construction where a single pad
+# has different dimensions. Is it rare enough that it can just be left
+# as an exercise to the reader using LandPatternSize's math functions?
 
 class Drawing(object):
     """Container for drawn footprint features."""

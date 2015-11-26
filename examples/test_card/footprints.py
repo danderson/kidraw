@@ -271,6 +271,30 @@ def MELF(profile, polarized):
         spec=ipc.LandPatternSize.MELF(profile),
         polarized=polarized)
 
+@drawing
+def sot23_3(profile):
+    A = ipc.Dimension(1.2, 1.4)
+    B = ipc.Dimension(2.8, 3)
+    L = ipc.Dimension(2.3, 2.5)
+    T = ipc.Dimension(0.2, 0.3)
+    W = ipc.Dimension(0.3, 0.51)
+    pitch = 0.95
+    return ipc.sot23_3(A=A, B=B, L=L, T=T, W=W, pitch=pitch,
+                       spec=ipc.LandPatternSize.SOT(
+                           profile, A, L, T, pitch))
+
+@drawing
+def sot23_5(profile):
+    A = ipc.Dimension(1.5, 1.7)
+    B = ipc.Dimension(2.8, 3)
+    L = ipc.Dimension(2.6, 3)
+    T = ipc.Dimension(0.35, 0.55)
+    W = ipc.Dimension(0.35, 0.5)
+    pitch = 0.95
+    return ipc.sot23_5(A=A, B=B, L=L, T=T, W=W, pitch=pitch,
+                       spec=ipc.LandPatternSize.SOT(
+                           profile, A, L, T, pitch))
+
 PROFILE = {
     ipc.LandPatternSize.Most: 'M',
     ipc.LandPatternSize.Nominal: 'N',
@@ -288,6 +312,8 @@ for p, l in PROFILE.items():
         ('16-SSOP-'+l, ssop(p)),
         ('8-SC70-'+l, sc70(p)),
         ('12-TSOPJ-'+l, tsopj(p)),
+        ('SOT23-3-'+l, sot23_3(p)),
+        ('SOT23-5-'+l, sot23_5(p)),
     ])
     for polarized in (True, False):
         pol = 'P' if polarized else ''

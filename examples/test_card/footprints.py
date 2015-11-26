@@ -261,6 +261,16 @@ def Molded(profile, polarized):
         spec=ipc.LandPatternSize.inward_L_leads(profile),
         polarized=polarized)
 
+@drawing
+def MELF(profile, polarized):
+    A = ipc.Dimension(4.7, 5.2)
+    B = ipc.Dimension(2.41, 2.67)
+    T = ipc.Dimension(0.46, 0.56)
+    return ipc.two_terminal_symmetric_device(
+        A=A, B=B, L=A, T=T, W=B,
+        spec=ipc.LandPatternSize.MELF(profile),
+        polarized=polarized)
+
 PROFILE = {
     ipc.LandPatternSize.Most: 'M',
     ipc.LandPatternSize.Nominal: 'N',
@@ -286,5 +296,6 @@ for p, l in PROFILE.items():
                         chip(p, size, polarized)))
         fps.append(('SOD-%s-%s' % (pol, l), SOD(p, polarized)))
         fps.append(('Molded-%s-%s' % (pol, l), Molded(p, polarized)))
+        fps.append(('MELF-%s-%s' % (pol, l), MELF(p, polarized)))
 
 print binpack([(n, x.scale(30)) for n, x in fps], w=1200)

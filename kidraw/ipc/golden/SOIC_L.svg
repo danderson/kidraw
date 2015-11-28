@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+<g transform="translate(192.5, 147.0)">
+<rect x="-192.5" y="-147.0" width="365.0" height="294.0" fill="black" />
+<rect x="-163.75" y="-109.0" width="73.75" height="27.5" rx="0" ry="0" fill="red" opacity="0.8" />
+<circle cx="-178.75" cy="-95.25" r="5.0" fill="white" opacity="0.8" />
+<polyline points="-108.25,-105.25 -150.0,-105.25 -150.0,-85.25 -108.25,-85.25 -108.25,-105.25" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="-97.5,-105.25 -108.25,-105.25 -108.25,-85.25 -97.5,-85.25" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<rect x="-163.75" y="-45.5" width="73.75" height="27.5" rx="13.75" ry="13.75" fill="red" opacity="0.8" />
+<polyline points="-108.25,-41.75 -150.0,-41.75 -150.0,-21.75 -108.25,-21.75 -108.25,-41.75" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="-97.5,-41.75 -108.25,-41.75 -108.25,-21.75 -97.5,-21.75" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<rect x="-163.75" y="18.0" width="73.75" height="27.5" rx="13.75" ry="13.75" fill="red" opacity="0.8" />
+<polyline points="-108.25,21.75 -150.0,21.75 -150.0,41.75 -108.25,41.75 -108.25,21.75" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="-97.5,21.75 -108.25,21.75 -108.25,41.75 -97.5,41.75" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<rect x="-163.75" y="81.5" width="73.75" height="27.5" rx="13.75" ry="13.75" fill="red" opacity="0.8" />
+<polyline points="-108.25,85.25 -150.0,85.25 -150.0,105.25 -108.25,105.25 -108.25,85.25" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="-97.5,85.25 -108.25,85.25 -108.25,105.25 -97.5,105.25" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<rect x="90.0" y="81.5" width="73.75" height="27.5" rx="13.75" ry="13.75" fill="red" opacity="0.8" />
+<polyline points="108.25,105.25 150.0,105.25 150.0,85.25 108.25,85.25 108.25,105.25" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="97.5,105.25 108.25,105.25 108.25,85.25 97.5,85.25" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<rect x="90.0" y="18.0" width="73.75" height="27.5" rx="13.75" ry="13.75" fill="red" opacity="0.8" />
+<polyline points="108.25,41.75 150.0,41.75 150.0,21.75 108.25,21.75 108.25,41.75" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="97.5,41.75 108.25,41.75 108.25,21.75 97.5,21.75" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<rect x="90.0" y="-45.5" width="73.75" height="27.5" rx="13.75" ry="13.75" fill="red" opacity="0.8" />
+<polyline points="108.25,-21.75 150.0,-21.75 150.0,-41.75 108.25,-41.75 108.25,-21.75" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="97.5,-21.75 108.25,-21.75 108.25,-41.75 97.5,-41.75" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<rect x="90.0" y="-109.0" width="73.75" height="27.5" rx="13.75" ry="13.75" fill="red" opacity="0.8" />
+<polyline points="108.25,-85.25 150.0,-85.25 150.0,-105.25 108.25,-105.25 108.25,-85.25" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="97.5,-85.25 108.25,-85.25 108.25,-105.25 97.5,-105.25" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="97.5,-122.5 97.5,122.5 -97.5,122.5 -97.5,-122.5 97.5,-122.5" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="24.375,0 -24.375,0" stroke="blue" stroke-width="7.5" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="0,-24.375 0,24.375" stroke="blue" stroke-width="7.5" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="-97.5,-134.5 97.5,-134.5" stroke="white" stroke-width="7.5" opacity="1" fill="none" stroke-linecap="round" />
+<polyline points="-97.5,134.5 97.5,134.5" stroke="white" stroke-width="7.5" opacity="1" fill="none" stroke-linecap="round" />
+<polyline points="-97.5,-134.5 -97.5,-134.5" stroke="white" stroke-width="7.5" opacity="1" fill="none" stroke-linecap="round" />
+<polyline points="-97.5,134.5 -97.5,134.5" stroke="white" stroke-width="7.5" opacity="1" fill="none" stroke-linecap="round" />
+<polyline points="97.5,-134.5 97.5,-134.5" stroke="white" stroke-width="7.5" opacity="1" fill="none" stroke-linecap="round" />
+<polyline points="97.5,134.5 97.5,134.5" stroke="white" stroke-width="7.5" opacity="1" fill="none" stroke-linecap="round" />
+<polyline points="-188.75,143.25 168.75,143.25 168.75,-143.25 -188.75,-143.25 -188.75,143.25" stroke="magenta" stroke-width="7.5" opacity="0.6" fill="none" stroke-linecap="round" />
+</g>
+</svg>

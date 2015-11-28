@@ -3,6 +3,7 @@ import unittest
 import webbrowser
 
 from kidraw.ipc import library as lib
+from kidraw import ipc
 
 class TestLibrary(unittest.TestCase):
     def _check_svg(self, name, fp):
@@ -44,14 +45,26 @@ Diff SVG written to {1} for inspection.
         for k in lib._chip_metric_dimensions.keys():
             for p, n in self.PROFILES.items():
                 for polarized in (True, False):
-                    name = 'metric'+k+n
+                    name = 'chip_m_%s_%s' % (k, n)
                     name += 'P' if polarized else ''
                     fp = lib.chip(p, lib.metric(k), polarized)
                     self._check_svg(name, fp)
         for k in lib._chip_imperial_dimensions.keys():
             for p, n in self.PROFILES.items():
                 for polarized in (True, False):
-                    name = 'imperial'+k+n
+                    name = 'chip_i_%s_%s' % (k, n)
                     name += 'P' if polarized else ''
                     fp = lib.chip(p, lib.imperial(k), polarized)
                     self._check_svg(name, fp)
+
+    def testSOIC(self):
+        for p, n in self.PROFILES.items():
+            name = 'SOIC_%s' % n
+            fp = lib.SOIC(p,
+                          ipc.Dimension(3.8, 4),
+                          ipc.Dimension(4.8, 5),
+                          ipc.Dimension(5.8, 6.2),
+                          ipc.Dimension(0.4, 1.27),
+                          ipc.Dimension(0.3, 0.5),
+                          8)
+            self._check_svg(name, fp)

@@ -105,3 +105,15 @@ Diff SVG written to {1} for inspection.
             name = 'SOT23-8_%s' % n
             fp = lib.SOT23(p, 8)
             self._check_svg(name, fp)
+
+    def testQFP(self):
+        for p, n in self.PROFILES.items():
+            name = 'QFP_%s' % n
+            fp = lib.QFP(p,
+                         ipc.Dimension(6.8, 7.2),
+                         ipc.Dimension(8.8, 9.2),
+                         ipc.Dimension(0.45, 0.75),
+                         ipc.Dimension(0.3, 0.45),
+                         0.8,
+                         32)
+            self._check_svg(name, fp)

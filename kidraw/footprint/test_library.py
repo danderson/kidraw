@@ -6,6 +6,7 @@ from kidraw.footprint import library as lib
 
 class TestLibrary(unittest.TestCase):
     def _check_fp(self, name, fp):
+        self.maxDiff = None
         golden = os.path.join(
             os.path.dirname(__file__),
             'golden/%s.kicad_mod' % name)

@@ -172,7 +172,7 @@ class SurfaceMountPad(_Struct):
         'angle': 0,
         'size': (0, 0),
         'clearance': 0,
-        'solder_mask_margin': 0.1,
+        'solder_mask_margin': 0,
         'solder_paste_margin': 0,
         'solder_paste_ratio': 1,
         'thermal_width': 0,
@@ -202,7 +202,7 @@ class TestPad(_Struct):
         'angle': 0,
         'size': (0, 0),
         'clearance': 0,
-        'solder_mask_margin': 0.1,
+        'solder_mask_margin': 0,
     }
 
     def __str__(self):

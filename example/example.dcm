@@ -1,0 +1,35 @@
+EESchema-DOCLIB  Version 2.0
+$CMP +5V
+D +5V power rail
+$ENDCMP
+$CMP +12V
+D +12V power rail
+$ENDCMP
+$CMP GND
+D GND ground rail
+$ENDCMP
+$CMP PWR_FLAG
+D 
+$ENDCMP
+$CMP Resistor
+D 
+$ENDCMP
+$CMP Capacitor
+D 
+$ENDCMP
+$CMP Capacitor_(Polarized)
+D 
+$ENDCMP
+$CMP Inductor
+D 
+$ENDCMP
+$CMP LED
+D 
+$ENDCMP
+$CMP STM32F042K6T6
+D ARM Cortex M0 microcontroller
+$ENDCMP
+$CMP AP2120N
+D 3.3V linear regulator
+$ENDCMP
+#End Doc Library

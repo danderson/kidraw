@@ -1,0 +1,333 @@
+EESchema Schematic File Version 2
+LIBS:example
+LIBS:example-cache
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L +12V #PWR01
+U 1 1 565A270F
+P 4250 2300
+F 0 "#PWR01" H 4250 2400 50  0001 C CNN
+F 1 "+12V" H 4250 2385 50  0000 C CNN
+F 2 "" H 4250 2300 50  0001 C CNN
+F 3 "" H 4250 2300 50  0001 C CNN
+	1    4250 2300
+	1    0    0    -1  
+$EndComp
+$Comp
+L +5V #PWR02
+U 1 1 565A2723
+P 4750 2300
+F 0 "#PWR02" H 4750 2400 50  0001 C CNN
+F 1 "+5V" H 4750 2385 50  0000 C CNN
+F 2 "" H 4750 2300 50  0001 C CNN
+F 3 "" H 4750 2300 50  0001 C CNN
+	1    4750 2300
+	1    0    0    -1  
+$EndComp
+$Comp
+L AP2120N U1
+U 1 1 565A2737
+P 5350 2400
+F 0 "U1" H 5350 2550 50  0000 C CNN
+F 1 "AP2120N" H 5350 2350 25  0000 C CNN
+F 2 "example:AP2120N_SOT23-3" H 5350 2400 50  0001 C CNN
+F 3 "" H 5350 2400 50  0001 C CNN
+	1    5350 2400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Capacitor C1
+U 1 1 565A2768
+P 4500 2400
+F 0 "C1" H 4500 2335 50  0000 C CNN
+F 1 "10uF" H 4500 2465 50  0000 C CNN
+F 2 "example:Capacitor_0603" H 4500 2400 50  0001 C CNN
+F 3 "" H 4500 2400 50  0001 C CNN
+	1    4500 2400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Capacitor_(Polarized) C2
+U 1 1 565A2793
+P 4500 2650
+F 0 "C2" H 4500 2585 50  0000 C CNN
+F 1 "1uF" H 4500 2715 50  0000 C CNN
+F 2 "example:Capacitor_(Polarized)_1206" H 4500 2650 50  0001 C CNN
+F 3 "" H 4500 2650 50  0001 C CNN
+	1    4500 2650
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR03
+U 1 1 565A27C0
+P 5350 2900
+F 0 "#PWR03" H 5350 2750 50  0001 C CNN
+F 1 "GND" H 5350 2935 50  0000 C CNN
+F 2 "" H 5350 2900 50  0001 C CNN
+F 3 "" H 5350 2900 50  0001 C CNN
+	1    5350 2900
+	1    0    0    -1  
+$EndComp
+$Comp
+L Inductor L1
+U 1 1 565A27DA
+P 4500 4100
+F 0 "L1" H 4500 4045 50  0000 C CNN
+F 1 "Inductor" H 4500 4155 50  0000 C CNN
+F 2 "example:Inductor_1206" H 4500 4100 50  0001 C CNN
+F 3 "" H 4500 4100 50  0001 C CNN
+	1    4500 4100
+	1    0    0    -1  
+$EndComp
+$Comp
+L LED LED1
+U 1 1 565A2835
+P 4500 2850
+F 0 "LED1" H 4500 2790 50  0000 C CNN
+F 1 "LED" H 4500 2934 50  0001 C CNN
+F 2 "example:LED_1206" H 4500 2850 50  0001 C CNN
+F 3 "" H 4500 2850 50  0001 C CNN
+	1    4500 2850
+	1    0    0    -1  
+$EndComp
+$Comp
+L Resistor R2
+U 1 1 565A28D3
+P 4500 3850
+F 0 "R2" H 4500 3795 50  0000 C CNN
+F 1 "Resistor" H 4500 3905 50  0000 C CNN
+F 2 "example:Resistor_1206" H 4500 3850 50  0001 C CNN
+F 3 "" H 4500 3850 50  0001 C CNN
+	1    4500 3850
+	1    0    0    -1  
+$EndComp
+$Comp
+L STM32F042K6T6 U2
+U 1 1 565A292E
+P 6850 3200
+F 0 "U2" H 6850 2265 50  0000 C CNN
+F 1 "STM32F042K6T6" H 6850 4085 50  0000 C CNN
+F 2 "example:STM32F042K6T6_32-QFP" H 6850 3200 50  0001 C CNN
+F 3 "" H 6850 3200 50  0001 C CNN
+	1    6850 3200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5950 2400 5650 2400
+Wire Wire Line
+	5350 2700 5350 2900
+Wire Wire Line
+	5950 2700 5900 2700
+Wire Wire Line
+	5900 2400 5900 2850
+Wire Wire Line
+	5900 2850 5950 2850
+Wire Wire Line
+	5950 3150 5900 3150
+Wire Wire Line
+	5900 3150 5900 3300
+Wire Wire Line
+	5900 3300 5950 3300
+Wire Wire Line
+	5950 3600 5900 3600
+Wire Wire Line
+	5900 3600 5900 3750
+Wire Wire Line
+	5900 3750 5950 3750
+Wire Wire Line
+	5950 4050 5600 4050
+Wire Wire Line
+	5600 4050 5600 2750
+Wire Wire Line
+	5600 2750 5350 2750
+Connection ~ 5350 2750
+Wire Wire Line
+	7700 2400 7800 2400
+Wire Wire Line
+	7800 2400 7800 4050
+Wire Wire Line
+	7800 4050 7700 4050
+Wire Wire Line
+	7700 3900 7800 3900
+Connection ~ 7800 3900
+Wire Wire Line
+	7700 3750 7800 3750
+Connection ~ 7800 3750
+Wire Wire Line
+	7700 3600 7800 3600
+Connection ~ 7800 3600
+Wire Wire Line
+	7700 3450 7800 3450
+Connection ~ 7800 3450
+Wire Wire Line
+	7700 3300 7800 3300
+Connection ~ 7800 3300
+Wire Wire Line
+	7700 3150 7800 3150
+Connection ~ 7800 3150
+Wire Wire Line
+	7700 3000 7800 3000
+Connection ~ 7800 3000
+Wire Wire Line
+	7700 2850 7800 2850
+Connection ~ 7800 2850
+Wire Wire Line
+	7700 2700 7800 2700
+Connection ~ 7800 2700
+Wire Wire Line
+	7700 2550 7800 2550
+Connection ~ 7800 2550
+$Comp
+L Resistor R1
+U 1 1 565A2F5A
+P 4500 3600
+F 0 "R1" H 4500 3545 50  0000 C CNN
+F 1 "Resistor" H 4500 3655 50  0000 C CNN
+F 2 "example:Resistor_0805" H 4500 3600 50  0001 C CNN
+F 3 "" H 4500 3600 50  0001 C CNN
+	1    4500 3600
+	1    0    0    -1  
+$EndComp
+$Comp
+L Capacitor_(Polarized) C4
+U 1 1 565A2F83
+P 4500 3350
+F 0 "C4" H 4500 3285 50  0000 C CNN
+F 1 "1pF" H 4500 3415 50  0000 C CNN
+F 2 "example:Capacitor_(Polarized)_0805" H 4500 3350 50  0001 C CNN
+F 3 "" H 4500 3350 50  0001 C CNN
+	1    4500 3350
+	1    0    0    -1  
+$EndComp
+$Comp
+L Capacitor C3
+U 1 1 565A2FB6
+P 4500 3100
+F 0 "C3" H 4500 3035 50  0000 C CNN
+F 1 "1nF" H 4500 3165 50  0000 C CNN
+F 2 "example:Capacitor_1206" H 4500 3100 50  0001 C CNN
+F 3 "" H 4500 3100 50  0001 C CNN
+	1    4500 3100
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4750 2300 4750 4100
+Wire Wire Line
+	4600 2400 5050 2400
+Connection ~ 4750 2400
+Wire Wire Line
+	4750 4100 4600 4100
+Wire Wire Line
+	4600 3850 4750 3850
+Connection ~ 4750 3850
+Wire Wire Line
+	4600 3600 4750 3600
+Connection ~ 4750 3600
+Wire Wire Line
+	4600 3350 4750 3350
+Connection ~ 4750 3350
+Wire Wire Line
+	4600 3100 4750 3100
+Connection ~ 4750 3100
+Wire Wire Line
+	4600 2850 4750 2850
+Connection ~ 4750 2850
+Wire Wire Line
+	4600 2650 4750 2650
+Connection ~ 4750 2650
+Wire Wire Line
+	3950 2400 4400 2400
+Wire Wire Line
+	4250 2300 4250 4100
+Wire Wire Line
+	4250 2650 4400 2650
+Connection ~ 4250 2400
+Wire Wire Line
+	4250 2850 4400 2850
+Connection ~ 4250 2650
+Wire Wire Line
+	4250 3100 4400 3100
+Connection ~ 4250 2850
+Wire Wire Line
+	4250 3350 4400 3350
+Connection ~ 4250 3100
+Wire Wire Line
+	4250 3600 4400 3600
+Connection ~ 4250 3350
+Wire Wire Line
+	4250 3850 4400 3850
+Connection ~ 4250 3600
+Wire Wire Line
+	4250 4100 4400 4100
+Connection ~ 4250 3850
+$Comp
+L PWR_FLAG #FLG04
+U 1 1 565A2A63
+P 3950 2300
+F 0 "#FLG04" H 3950 2265 50  0001 C CNN
+F 1 "PWR_FLAG" H 3950 2460 50  0001 C CNN
+F 2 "" H 3950 2300 50  0001 C CNN
+F 3 "" H 3950 2300 50  0001 C CNN
+	1    3950 2300
+	1    0    0    -1  
+$EndComp
+$Comp
+L PWR_FLAG #FLG05
+U 1 1 565A2ACE
+P 5000 2300
+F 0 "#FLG05" H 5000 2265 50  0001 C CNN
+F 1 "PWR_FLAG" H 5000 2460 50  0001 C CNN
+F 2 "" H 5000 2300 50  0001 C CNN
+F 3 "" H 5000 2300 50  0001 C CNN
+	1    5000 2300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3950 2300 3950 2400
+Connection ~ 5900 2400
+Connection ~ 5900 2700
+$Comp
+L PWR_FLAG #FLG06
+U 1 1 565A2FAF
+P 5800 4000
+F 0 "#FLG06" H 5800 3965 50  0001 C CNN
+F 1 "PWR_FLAG" H 5800 4160 50  0001 C CNN
+F 2 "" H 5800 4000 50  0001 C CNN
+F 3 "" H 5800 4000 50  0001 C CNN
+	1    5800 4000
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5800 4000 5800 4050
+Connection ~ 5800 4050
+Wire Wire Line
+	5000 2400 5000 2300
+Connection ~ 5000 2400
+$Comp
+L PWR_FLAG #FLG07
+U 1 1 565A2F59
+P 5750 2300
+F 0 "#FLG07" H 5750 2265 50  0001 C CNN
+F 1 "PWR_FLAG" H 5750 2460 50  0001 C CNN
+F 2 "" H 5750 2300 50  0001 C CNN
+F 3 "" H 5750 2300 50  0001 C CNN
+	1    5750 2300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5750 2300 5750 2400
+Connection ~ 5750 2400
+$EndSCHEMATC

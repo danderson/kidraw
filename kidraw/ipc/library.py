@@ -15,29 +15,33 @@ Most = ipc.LandPatternSize.Most
 Nominal = ipc.LandPatternSize.Nominal
 Least = ipc.LandPatternSize.Least
 
+_chip_metric_dimensions = {
+    '1005': (ipc.Dimension.from_nominal(1.00, 0.05),
+             ipc.Dimension.from_nominal(0.50, 0.05),
+             ipc.Dimension.from_nominal(0.2, 0.10)),
+    '1608': (ipc.Dimension.from_nominal(1.55, 0.05),
+             ipc.Dimension.from_nominal(0.85, 0.10),
+             ipc.Dimension.from_nominal(0.3, 0.15, 0.20)),
+    '2012': (ipc.Dimension.from_nominal(2.00, 0.10),
+             ipc.Dimension.from_nominal(1.25, 0.15),
+             ipc.Dimension.from_nominal(0.4, 0.1, 0.2)),
+    '3216': (ipc.Dimension.from_nominal(3.20, 0.1, 0.2),
+             ipc.Dimension.from_nominal(1.60, 0.15),
+             ipc.Dimension.from_nominal(0.50, 0.25)),
+}
+
 def metric(n):
-    return {
-        '1005': (ipc.Dimension.from_nominal(1.00, 0.05),
-                 ipc.Dimension.from_nominal(0.50, 0.05),
-                 ipc.Dimension.from_nominal(0.2, 0.10)),
-        '1608': (ipc.Dimension.from_nominal(1.55, 0.05),
-                 ipc.Dimension.from_nominal(0.85, 0.10),
-                 ipc.Dimension.from_nominal(0.3, 0.15, 0.20)),
-        '2012': (ipc.Dimension.from_nominal(2.00, 0.10),
-                 ipc.Dimension.from_nominal(1.25, 0.15),
-                 ipc.Dimension.from_nominal(0.4, 0.1, 0.2)),
-        '3216': (ipc.Dimension.from_nominal(3.20, 0.1, 0.2),
-                 ipc.Dimension.from_nominal(1.60, 0.15),
-                 ipc.Dimension.from_nominal(0.50, 0.25)),
-    }[n]
+    return _chip_metric_dimensions[n]
+
+_chip_imperial_dimensions = {
+    '0402': metric('1005'),
+    '0603': metric('1608'),
+    '0805': metric('2012'),
+    '1206': metric('3216'),
+}
 
 def imperial(n):
-    return metric({
-        '0402': '1005',
-        '0603': '1608',
-        '0805': '2012',
-        '1206': '3216',
-    }[n])
+    return _chip_imperial_dimensions[n]
 
 def chip(profile, size, polarized=False):
     """Construct a land pattern for chip devices.
@@ -48,7 +52,7 @@ def chip(profile, size, polarized=False):
     """
     A, B, T = size
     return ipc.two_terminal_symmetric_device(
-        A, B, A, T, B, ipc.LandPatternSize.chip(profile, A))
+        A, B, A, T, B, ipc.LandPatternSize.chip(profile, A), polarized)
 
 def SOIC(profile, A, B, L, T, W, num_pins, pitch=1.27):
     """Construct a land pattern for a SOIC device.

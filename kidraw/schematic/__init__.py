@@ -145,8 +145,8 @@ class Text(_Struct):
         'text': '',
         'pos': (0, 0),
         'font_size': 50,
-        'halign': Text.Center,
-        'valign': Text.Center,
+        'halign': Center,
+        'valign': Center,
     }
 
     def __str__(self):
@@ -189,9 +189,9 @@ class Pin(_Struct):
         'pos': (0, 0),
         'len': 0,
         'font_size': 50,
-        'dir': Pin.Right,
-        'type': Pin.Undefined,
-        'shape': Pin.Plain,
+        'dir': Right,
+        'type': Undefined,
+        'shape': Plain,
     }
 
     def __str__(self):

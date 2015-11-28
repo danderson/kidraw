@@ -492,7 +492,7 @@ class Drawing(object):
             '<svg xmlns="http://www.w3.org/2000/svg" version="1.1">',
             '<g transform="translate({0}, {1})">'.format(-xmin, -ymin),
             '<rect x="{0}" y="{1}" width="{2}" height="{3}" fill="{4}" />'.format(
-                -w/2, -h/2, w, h, background_color),
+                xmin, -ymax, w, h, background_color),
         ]
         colormap = {
             Drawing.Layer.Silkscreen: silkscreen_color,

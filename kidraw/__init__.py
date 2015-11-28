@@ -1,7 +1,4 @@
 from kidraw import schematic, footprint, ipc
-from kidraw.ipc import reference as fpref
-
-__all__
 
 class Library(object):
     def __init__(self, name):

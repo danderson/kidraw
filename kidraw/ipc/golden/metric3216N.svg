@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+<g transform="translate(128.75, 70.0)">
+<rect x="-128.75" y="-70.0" width="257.5" height="140.0" fill="black" />
+<rect x="-112.5" y="-50.0" width="75.0" height="100.0" rx="0" ry="0" fill="red" opacity="0.8" />
+<rect x="37.5" y="-50.0" width="75.0" height="100.0" rx="0" ry="0" fill="red" opacity="0.8" />
+<polyline points="-18.75,0 18.75,0" stroke="blue" stroke-width="7.5" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="0,18.75 0,-18.75" stroke="blue" stroke-width="7.5" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="-78.75,-40.0 -78.75,40.0 78.75,40.0 78.75,-40.0 -78.75,-40.0" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="-27.5,-50.0 27.5,-50.0" stroke="white" stroke-width="7.5" opacity="1" fill="none" stroke-linecap="round" />
+<polyline points="-27.5,50.0 27.5,50.0" stroke="white" stroke-width="7.5" opacity="1" fill="none" stroke-linecap="round" />
+<polyline points="-125.0,66.25 125.0,66.25 125.0,-66.25 -125.0,-66.25 -125.0,66.25" stroke="magenta" stroke-width="7.5" opacity="0.6" fill="none" stroke-linecap="round" />
+</g>
+</svg>

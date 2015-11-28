@@ -261,4 +261,5 @@ for p, l in PROFILE.items():
     for s in (3, 5, 6, 8):
         fps.append(('SOT23-{0}'.format(s), lib.SOT23(p, s)))
 
-print binpack([(n, x.scale(30)) for n, x in fps], w=1200)
+with open('card.svg', 'w') as f:
+    f.write(binpack([(n, x.scale(30)) for n, x in fps], w=1200))

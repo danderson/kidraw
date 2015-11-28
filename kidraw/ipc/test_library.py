@@ -68,3 +68,16 @@ Diff SVG written to {1} for inspection.
                           ipc.Dimension(0.3, 0.5),
                           8)
             self._check_svg(name, fp)
+
+    def testSOP(self):
+        for p, n in self.PROFILES.items():
+            name = 'TSSOP_%s' % n
+            fp = lib.SOP(p,
+                         ipc.Dimension(4.3, 4.5),
+                         ipc.Dimension(2.9, 3.1),
+                         ipc.Dimension(6.25, 6.5),
+                         ipc.Dimension(0.5, 0.7),
+                         ipc.Dimension(0.19, 0.3),
+                         8,
+                         0.65)
+            self._check_svg(name, fp)

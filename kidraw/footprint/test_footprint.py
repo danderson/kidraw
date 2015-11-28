@@ -174,7 +174,7 @@ class FootprintTest(unittest.TestCase):
   (solder_mask_margin 0)
   (clearance 0)
   (solder_paste_margin 0)
-  (solder_paste_ratio 0)
+  (solder_paste_margin_ratio 0)
 )''')
 
         p.name = 42
@@ -186,7 +186,7 @@ class FootprintTest(unittest.TestCase):
   (solder_mask_margin 0)
   (clearance 0)
   (solder_paste_margin 0)
-  (solder_paste_ratio 0)
+  (solder_paste_margin_ratio 0)
 )''')
         
         p.center = (1.5, 2.6)
@@ -199,7 +199,7 @@ class FootprintTest(unittest.TestCase):
   (solder_mask_margin 0)
   (clearance 0)
   (solder_paste_margin 0)
-  (solder_paste_ratio 0)
+  (solder_paste_margin_ratio 0)
 )''')
 
         p.clearance = 1.2
@@ -213,7 +213,7 @@ class FootprintTest(unittest.TestCase):
   (solder_mask_margin 2.3)
   (clearance 1.2)
   (solder_paste_margin 3.4)
-  (solder_paste_ratio -25)
+  (solder_paste_margin_ratio -25)
 )''')
 
         p.thermal_width = 10
@@ -225,7 +225,7 @@ class FootprintTest(unittest.TestCase):
   (solder_mask_margin 2.3)
   (clearance 1.2)
   (solder_paste_margin 3.4)
-  (solder_paste_ratio -25)
+  (solder_paste_margin_ratio -25)
   (zone_connect 1)
   (thermal_width 10)
   (thermal_gap 20)
@@ -283,8 +283,8 @@ class FootprintTest(unittest.TestCase):
 )''')
 
     def testFootprint(self):
-        f = fp.Footprint()
-        self.assertSExpr(str(f), '''(module None
+        f = fp.Footprint(name='test')
+        self.assertSExpr(str(f), '''(module test
 (layer F.Cu)
 (tedit 0)
 (at 0 0)

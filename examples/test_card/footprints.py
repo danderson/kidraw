@@ -5,8 +5,10 @@ This is mostly used during development, to sanity-check many
 footprints one one shot.
 """
 
+import sys
+
 from kidraw import ipc
-from kidraw.ipc import reference as ref
+from kidraw.ipc import library as lib
 
 class Node(object):
     def __init__(self, x=0, y=0, w=800, h=None):
@@ -78,7 +80,8 @@ def drawing(f):
     def run(*args, **kwargs):
         try:
             return f(*args, **kwargs)
-        except ipc.InfeasibleFootprint:
+        except ipc.InfeasibleFootprint as e:
+            print >>sys.stderr, e
             r = ipc.Drawing()
             r.features += [
                 ipc.Drawing.Line(
@@ -292,10 +295,9 @@ for p, l in PROFILE.items():
     ])
     for polarized in (True, False):
         pol = 'P' if polarized else ''
-        for n in dir(ref):
-            if n.startswith('imperial'):
-                fps.append(('{0}-{1}-{2}'.format(n[8:], pol, l),
-                            getattr(ref, n)(p, pol)))
+        for s in ('0402', '0603', '0805', '1206'):
+            fps.append(('{0}-{1}-{2}'.format(s, pol, l),
+                        lib.chip(p, lib.imperial(s), polarized)))
         fps.append(('SOD-%s-%s' % (pol, l), SOD(p, polarized)))
         fps.append(('Molded-%s-%s' % (pol, l), Molded(p, polarized)))
         fps.append(('MELF-%s-%s' % (pol, l), MELF(p, polarized)))

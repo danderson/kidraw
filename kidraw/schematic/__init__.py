@@ -224,6 +224,7 @@ def ICBuilder(object):
         self._edge_margin = edge_margin
         self._grid_snap = grid_snap
 
+        self._side = None
         self._pins = {}
         self._slots_by_side = {
             Pin.Right: [],
@@ -322,8 +323,11 @@ def ICBuilder(object):
                 self._slots_by_side[Pin.Right].append(None)
         return slots_lr, slots_ud
 
-    def pin(self, numbers, dir, **kwargs):
-        p = Pin(numbers=numbers, **kwargs)
+    def side(self, side):
+        self._side = side
+    
+    def pin(self, numbers, **kwargs):
+        p = Pin(numbers=numbers, dir=self._side, **kwargs)
         if isinstance(numbers, int):
             numbers = [numbers]
         for n in numbers:
@@ -332,12 +336,12 @@ def ICBuilder(object):
             if n in self._pins:
                 raise ValueError('Duplicate definition of pin') # TODO: better
             self._pins[n] = p
-        self._slots_by_side[dir].append(p)
+        self._slots_by_side[self._side].append(p)
         return p
 
-    def gap(self, n, dir):
+    def gap(self, n):
         for _ in range(n):
-            self._slots_by_side[dir].append(None)
+            self._slots_by_side[self._side].append(None)
 
 def _clean_name(n):
     return n.replace(' ', '_')

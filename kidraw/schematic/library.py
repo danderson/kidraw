@@ -72,7 +72,7 @@ def resistor():
     ]
     return s
 
-def capacitor(polarized):
+def capacitor(polarized=False):
     s = Schematic(name='Capacitor',
                   refdes='C',
                   hide_pin_text=True)

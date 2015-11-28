@@ -81,3 +81,27 @@ Diff SVG written to {1} for inspection.
                          8,
                          0.65)
             self._check_svg(name, fp)
+
+    def testSOT23_3(self):
+        for p, n in self.PROFILES.items():
+            name = 'SOT23-3_%s' % n
+            fp = lib.SOT23(p, 3)
+            self._check_svg(name, fp)
+
+    def testSOT23_5(self):
+        for p, n in self.PROFILES.items():
+            name = 'SOT23-5_%s' % n
+            fp = lib.SOT23(p, 5)
+            self._check_svg(name, fp)
+
+    def testSOT23_6(self):
+        for p, n in self.PROFILES.items():
+            name = 'SOT23-6_%s' % n
+            fp = lib.SOT23(p, 6)
+            self._check_svg(name, fp)
+
+    def testSOT23_8(self):
+        for p, n in self.PROFILES.items():
+            name = 'SOT23-8_%s' % n
+            fp = lib.SOT23(p, 8)
+            self._check_svg(name, fp)

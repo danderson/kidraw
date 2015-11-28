@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+<g transform="translate(121.25, 93.0)">
+<rect x="-121.25" y="-93.0" width="222.5" height="186.0" fill="black" />
+<rect x="-85.0" y="-62.5" width="63.75" height="30.0" rx="0" ry="0" fill="red" opacity="0.8" />
+<circle cx="-100.0" cy="-47.5" r="5.0" fill="white" opacity="0.8" />
+<polyline points="-34.25,-57.5 -59.25,-57.5 -59.25,-37.5 -34.25,-37.5 -34.25,-57.5" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="-32.5,-57.5 -34.25,-57.5 -34.25,-37.5 -32.5,-37.5" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<rect x="-85.0" y="32.5" width="63.75" height="30.0" rx="15.0" ry="15.0" fill="red" opacity="0.8" />
+<polyline points="-34.25,37.5 -59.25,37.5 -59.25,57.5 -34.25,57.5 -34.25,37.5" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="-32.5,37.5 -34.25,37.5 -34.25,57.5 -32.5,57.5" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<rect x="21.25" y="-15.0" width="63.75" height="30.0" rx="15.0" ry="15.0" fill="red" opacity="0.8" />
+<polyline points="34.25,10.0 59.25,10.0 59.25,-10.0 34.25,-10.0 34.25,10.0" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="32.5,10.0 34.25,10.0 34.25,-10.0 32.5,-10.0" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="-32.5,73.0 32.5,73.0 32.5,-73.0 -32.5,-73.0 -32.5,73.0" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="-13.75,-73.0 32.5,-73.0 32.5,-22.5" stroke="white" stroke-width="7.5" opacity="1" fill="none" stroke-linecap="round" />
+<polyline points="-13.75,73.0 32.5,73.0 32.5,22.5" stroke="white" stroke-width="7.5" opacity="1" fill="none" stroke-linecap="round" />
+<polyline points="-32.5,-15.0 -32.5,15.0" stroke="white" stroke-width="7.5" opacity="1" fill="none" stroke-linecap="round" />
+<polyline points="-16.25,0 16.25,0" stroke="blue" stroke-width="7.5" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="0,16.25 0,-16.25" stroke="blue" stroke-width="7.5" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="-117.5,89.25 97.5,89.25 97.5,-89.25 -117.5,-89.25 -117.5,89.25" stroke="magenta" stroke-width="7.5" opacity="0.6" fill="none" stroke-linecap="round" />
+</g>
+</svg>

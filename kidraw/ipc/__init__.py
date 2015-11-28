@@ -129,6 +129,8 @@ def two_terminal_symmetric_device(A, B, L, T, W, spec, polarized):
 def _pin_line(ret, spec, A, L, T, W, pitch, start_pin, num_pins, rotation):
     Z, G = spec.OuterPadSpan(L, T), spec.InnerPadSpan(L, T)
     pad_width = spec.PadWidth(W)
+    if pitch - pad_width < spec.pcb_tolerance:
+        raise InfeasibleFootprint('Pad width {0} with pitch {1} risks overlap given PCB etching tolerance {2}'.format(pad_width, pitch, spec.pcb_tolerance))
     pad_len = (Z-G)/2
     pad_x = (Z+G)/4
 

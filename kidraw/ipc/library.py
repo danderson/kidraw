@@ -83,37 +83,41 @@ def SOT23(profile, num_pins):
         W = ipc.Dimension(0.3, 0.5)
         return ipc.sot23_3(
             A, B, L, T, W, 0.95,
-            ipc.LandPatternSize.SOT(profile, A, L, T, pitch))
+            ipc.LandPatternSize.SOT(profile, A, L, T, 0.95))
     elif num_pins == 5:
         # Dimensions from JEDEC MO-178-C variant AA
         A = ipc.Dimension.from_nominal(1.6, 0.1)
         B = ipc.Dimension.from_nominal(2.9, 0.1)
         L = ipc.Dimension.from_nominal(2.8, 0.2)
-        T = ipc.Dimension.from_nominal(0.3, 0.6)
-        W = ipc.Dimension.from_nominal(0.3, 0.5)
+        T = ipc.Dimension(0.3, 0.6)
+        W = ipc.Dimension(0.3, 0.5)
         return ipc.sot23_5(
             A, B, L, T, W, 0.95,
-            ipc.LandPatternSize.SOT(profile, A, L, T, pitch))
+            ipc.LandPatternSize.SOT(profile, A, L, T, 0.95))
     elif num_pins == 6:
         # Dimensions from JEDEC MO-178-C variant AB
         A = ipc.Dimension.from_nominal(1.6, 0.1)
         B = ipc.Dimension.from_nominal(2.9, 0.1)
         L = ipc.Dimension.from_nominal(2.8, 0.2)
-        T = ipc.Dimension.from_nominal(0.3, 0.6)
-        W = ipc.Dimension.from_nominal(0.3, 0.5)
+        T = ipc.Dimension(0.3, 0.6)
+        W = ipc.Dimension(0.3, 0.5)
         return ipc.in_line_pin_device(
             A, B, L, B, T, W, 0.95, 3, 0,
-            ipc.LandPatternSize.SOT(profile, A, L, T, pitch))
+            ipc.LandPatternSize.SOT(profile, A, L, T, 0.95))
     elif num_pins == 8:
         # Dimensions from JEDEC MO-178-C variant BA
         A = ipc.Dimension.from_nominal(1.6, 0.1)
         B = ipc.Dimension.from_nominal(2.9, 0.1)
         L = ipc.Dimension.from_nominal(2.8, 0.2)
-        T = ipc.Dimension.from_nominal(0.3, 0.6)
-        W = ipc.Dimension.from_nominal(0.22, 0.38)
+        T = ipc.Dimension(0.3, 0.6)
+        W = ipc.Dimension(0.22, 0.38)
+        # SOT23-8 is almost at the threshold where IPC switches to
+        # much smaller side fillets. This causes overlap violations
+        # with the Most profile. As such, we force the narrower pitch
+        # profile here by using a smaller pitch.
+        spec = ipc.LandPatternSize.SOT(profile, A, L, T, 0.6)
         return ipc.in_line_pin_device(
-            A, B, L, B, T, W, 0.65, 4, 0,
-            ipc.LandPatternSize.SOT(profile, A, L, T, pitch))
+            A, B, L, B, T, W, 0.65, 4, 0, spec)
     else:
         raise ValueError("No known standard dimensions for SOT23-{0}".format(num_pins))
 

@@ -226,6 +226,10 @@ class Footprint(_Struct):
         'features': [],
     }
 
+    @property
+    def filename(self):
+        return self.name.replace(' ', '_')
+    
     def from_ipc(self, ipc_drawing):
         """Translate a kidraw.ipc Drawing into Footprint features."""
         for f in ipc_drawing.features:
@@ -264,9 +268,10 @@ class Footprint(_Struct):
                     line_width=2*f.radius))
             else:
                 raise ValueError('Unknown IPC footprint feature type', type(f))
+        return self
     
     def __str__(self):
-        return '''(module {0.name}
+        return '''(module {0.filename}
 (layer F.Cu)
 (tedit 0)
 (at 0 0)

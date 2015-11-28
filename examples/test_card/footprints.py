@@ -109,9 +109,7 @@ def tqfp(profile):
     W = ipc.Dimension(0.3, 0.45)
     pitch = 0.8
 
-    return ipc.in_line_pin_device(
-        A, A, L, L, T, W, pitch, 8, 8,
-        ipc.LandPatternSize.QFP(profile, A, L, T, pitch))
+    return lib.QFP(profile, A, L, T, W, pitch, 32)
 
 @drawing
 def qfn(profile):
@@ -121,10 +119,7 @@ def qfn(profile):
     W = ipc.Dimension(0.18, 0.30)
     pitch = 0.5
 
-    return ipc.in_line_pin_device(
-        A=A, B=A, LA=A, LB=A, T=T, W=W, pitch=pitch,
-        pins_leftright=6, pins_updown=6,
-        spec=ipc.LandPatternSize.QFN(profile))
+    return lib.QFN(profile, A, T, W, pitch, 24)
 
 @drawing
 def pqfn(profile):
@@ -161,13 +156,7 @@ def soic(profile):
     L = ipc.Dimension.from_nominal(6.0, 0.1)
     T = ipc.Dimension(0.4, 1.27)
     W = ipc.Dimension(0.31, 0.51)
-    pitch = 1.27
-    spec = ipc.LandPatternSize.SOIC(
-        profile=profile,
-        A=A, L=L, T=T, pitch=pitch)
-    return ipc.in_line_pin_device(
-        A=A, B=B, LA=L, LB=B, T=T, W=W, pitch=pitch,
-        pins_leftright=4, pins_updown=0, spec=spec)
+    return lib.SOIC(profile, A, B, L, T, W, 8)
 
 @drawing
 def ssop(profile):
@@ -179,13 +168,7 @@ def ssop(profile):
     W = ipc.Dimension(0.25, 0.38)
     pitch = 0.65
 
-    spec = ipc.LandPatternSize.SOP(
-        profile=profile,
-        A=A, L=L, T=T, pitch=pitch)
-
-    return ipc.in_line_pin_device(
-        A=A, B=B, LA=L, LB=B, T=T, W=W, pitch=pitch,
-        pins_leftright=8, pins_updown=0, spec=spec)
+    return lib.SOP(profile, A, B, L, T, W, 16, pitch)
 
 @drawing
 def sc70(profile):
@@ -249,30 +232,6 @@ def MELF(profile, polarized):
         spec=ipc.LandPatternSize.MELF(profile),
         polarized=polarized)
 
-@drawing
-def sot23_3(profile):
-    A = ipc.Dimension(1.2, 1.4)
-    B = ipc.Dimension(2.8, 3)
-    L = ipc.Dimension(2.3, 2.5)
-    T = ipc.Dimension(0.2, 0.3)
-    W = ipc.Dimension(0.3, 0.51)
-    pitch = 0.95
-    return ipc.sot23_3(A=A, B=B, L=L, T=T, W=W, pitch=pitch,
-                       spec=ipc.LandPatternSize.SOT(
-                           profile, A, L, T, pitch))
-
-@drawing
-def sot23_5(profile):
-    A = ipc.Dimension(1.5, 1.7)
-    B = ipc.Dimension(2.8, 3)
-    L = ipc.Dimension(2.6, 3)
-    T = ipc.Dimension(0.35, 0.55)
-    W = ipc.Dimension(0.35, 0.5)
-    pitch = 0.95
-    return ipc.sot23_5(A=A, B=B, L=L, T=T, W=W, pitch=pitch,
-                       spec=ipc.LandPatternSize.SOT(
-                           profile, A, L, T, pitch))
-
 PROFILE = {
     ipc.LandPatternSize.Most: 'M',
     ipc.LandPatternSize.Nominal: 'N',
@@ -290,8 +249,6 @@ for p, l in PROFILE.items():
         ('16-SSOP-'+l, ssop(p)),
         ('8-SC70-'+l, sc70(p)),
         ('12-TSOPJ-'+l, tsopj(p)),
-        ('SOT23-3-'+l, sot23_3(p)),
-        ('SOT23-5-'+l, sot23_5(p)),
     ])
     for polarized in (True, False):
         pol = 'P' if polarized else ''
@@ -301,5 +258,7 @@ for p, l in PROFILE.items():
         fps.append(('SOD-%s-%s' % (pol, l), SOD(p, polarized)))
         fps.append(('Molded-%s-%s' % (pol, l), Molded(p, polarized)))
         fps.append(('MELF-%s-%s' % (pol, l), MELF(p, polarized)))
+    for s in (3, 5, 6, 8):
+        fps.append(('SOT23-{0}'.format(s), lib.SOT23(p, s)))
 
 print binpack([(n, x.scale(30)) for n, x in fps], w=1200)

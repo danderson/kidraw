@@ -1,7 +1,11 @@
 from __future__ import division
 
+import math
+from copy import deepcopy
+
 class Schematic(object):
     def __init__(self, name, refdes='U', description='', show_pin_text=True, show_refdes=True, show_name=True, power_symbol=False):
+        self.description = description
         self.show_name = show_name
         self.name = Text(text=name, pos=None)
         self.show_refdes = show_refdes
@@ -10,10 +14,14 @@ class Schematic(object):
         self.power_symbol = power_symbol
         self.features = []
 
+    @property
+    def filename(self):
+        return _clean_name(self.name.text)
+        
     def doc(self):
         return '''$CMP {0}
 D {1}
-$ENDCMP'''.format(_clean_name(self.name), self.description)
+$ENDCMP'''.format(_clean_name(self.name.text), self.description)
 
     def sch(self):
         sh = 'Y' if self.show_pin_text else 'N'
@@ -24,18 +32,18 @@ $ENDCMP'''.format(_clean_name(self.name), self.description)
         name_pos = self.name.pos
         refdes_pos = self.refdes.pos
         if name_pos is None:
-            name_pos = (0, self.bounding_box[0][1]-35)
+            name_pos = (0, int(self.bounding_box[0][1]-35))
         if refdes_pos is None:
-            refdes_pos = (0, self.bounding_box[1][1]+35)
+            refdes_pos = (0, int(self.bounding_box[1][1]+35))
         return '''DEF {1} {0.refdes.text} 0 0 {2} {2} 1 F {3}
-F0 "{0.refdes.name}" {7[0]} {7[1]} 50 H {4} {0.refdes.halign} {0.refdes.valign}NN
-F1 "{0.name.text}" {8[0]} {8[1]} 50 H {5} {0.name.halign} {0.name.valign}NN
+F0 "{0.refdes.text}" {7[0]} {7[1]} 50 H {4} {0.refdes.halign} {0.refdes.valign}NN
+F1 "{1}" {8[0]} {8[1]} 50 H {5} {0.name.halign} {0.name.valign}NN
 F2 "" 0 0 50 H I C CNN
 F3 "" 0 0 50 H I C CNN
 DRAW
 {6}
 ENDDRAW
-ENDDEF'''.format(self, _clean_name(self.name), sh, pow, show_refdes, show_name, features, name_pos, refdes_pos)
+ENDDEF'''.format(self, _clean_name(self.name.text), sh, pow, show_refdes, show_name, features, name_pos, refdes_pos)
 
     @property
     def bounding_box(self):
@@ -70,7 +78,7 @@ class Line(_Struct):
     }
 
     def __str__(self):
-        p = ['{0} {1}'.format(x, y) for x, y in self.points]
+        p = ['{0:.0f} {1:.0f}'.format(x, y) for x, y in self.points]
         f = 'F' if self.filled else 'N'
         return 'P {0} 0 1 {1} {2} {3}'.format(
             len(self.points), self.width, ' '.join(p), f)
@@ -150,7 +158,7 @@ class Text(_Struct):
     }
 
     def __str__(self):
-        return 'T 0 {0[0]} {0[1]} {1} 0 0 1 "{2}" Normal 0 {3} {4}' % (self.pos, self.font_size, self.text, self.halign, self.valign)
+        return 'T 0 {0[0]} {0[1]} {1} 0 0 1 "{2}" Normal 0 {3} {4}'.format(self.pos, self.font_size, self.text, self.halign, self.valign)
 
     @property
     def bounding_box(self):
@@ -195,14 +203,14 @@ class Pin(_Struct):
     }
 
     def __str__(self):
-        if isinstance(numbers, int):
-            numbers = [numbers]
-        n, os = numbers[0], numbers[1:]
+        if isinstance(self.numbers, int):
+            self.numbers = [self.numbers]
+        n, os = self.numbers[0], self.numbers[1:]
         ret = [
-            'X {0.name} {1} {0.pos[0]} {0.pos[1]} {0.len} {0.dir} {0.font_size} {0.font_size} 0 1 {0.type} {0.shape}'.format(self, n),
+            'X {0.name} {1} {0.pos[0]:.0f} {0.pos[1]:.0f} {0.len} {0.dir} {0.font_size} {0.font_size} 0 1 {0.type} {0.shape}'.format(self, n),
         ]
         for o in os:
-            ret.append('X ~ {1} {0.pos[0]} {0.pos[1]} 0 U 0 0 0 1 {0.type} N'.format(self, o))
+            ret.append('X {0.name} {1} {0.pos[0]:.0f} {0.pos[1]:.0f} 0 U 0 0 0 1 {0.type} N'.format(self, o))
         return '\n'.join(ret)
 
     @property
@@ -215,8 +223,8 @@ class Pin(_Struct):
         }[self.dir]
         return self.pos, (self.pos[0]+off[0], self.pos[1]+off[1])
 
-def ICBuilder(object):
-    def __init__(self, schematic, num_pins, slot_spacing=100, pin_len=200, edge_margin=50, grid_snap=50):
+class ICBuilder(object):
+    def __init__(self, schematic, num_pins, slot_spacing=150, pin_len=200, edge_margin=50, grid_snap=50):
         self._schematic = schematic
         self._num_pins = num_pins
         self._slot_spacing = slot_spacing
@@ -241,12 +249,12 @@ def ICBuilder(object):
                        len(self._slots_by_side[Pin.Right]))
         slots_ud = max(len(self._slots_by_side[Pin.Up]),
                        len(self._slots_by_side[Pin.Down]))
-        slots_lr, slots_ud = _correct_aspect_ratio(slots_lr, slots_ud)
+        slots_lr, slots_ud = self._correct_aspect_ratio(slots_lr, slots_ud)
 
-        w = slots_ud*self._slot_spacing + 2*self._edge_margin
-        h = slotd_lr*self._slot_spacing + 2*self._edge_margin
+        w = (slots_ud-1)*self._slot_spacing + 2*self._edge_margin
+        h = (slots_lr-1)*self._slot_spacing + 2*self._edge_margin
 
-        x1 = w/2
+        x1 = -w/2
         if x1 % self._grid_snap != 0:
             x1 -= x1 % self._grid_snap
         y1 = h/2
@@ -259,6 +267,7 @@ def ICBuilder(object):
             if s is not None:
                 s.len = self._pin_len
                 s.pos = x, y
+                s.dir = Pin.Right
                 self._schematic.features.append(s)
             y -= self._slot_spacing
 
@@ -268,6 +277,7 @@ def ICBuilder(object):
             if s is not None:
                 s.len = self._pin_len
                 s.pos = x, y
+                s.dir = Pin.Left
                 self._schematic.features.append(s)
             y -= self._slot_spacing
 
@@ -277,6 +287,7 @@ def ICBuilder(object):
             if s is not None:
                 s.len = self._pin_len
                 s.pos = x, y
+                s.dir = Pin.Down
                 self._schematic.features.append(s)
             x += self._slot_spacing
 
@@ -286,6 +297,7 @@ def ICBuilder(object):
             if s is not None:
                 s.len = self._pin_len
                 s.pos = x, y
+                s.dir = Pin.Up
                 self._schematic.features.append(s)
             x += self._slot_spacing
 
@@ -300,14 +312,28 @@ def ICBuilder(object):
             ]))
 
         # Hidden/don't care pins
-        for n in range(1, self.num_pins+1):
+        for n in range(1, self._num_pins+1):
             if n in self._pins:
                 continue
             self._schematic.features.append(
                 Pin(numbers=n, pos=(x1+n, y1-1), type=Pin.NotConnected, shape=Pin.Hidden))
 
     def _correct_aspect_ratio(self, slots_lr, slots_ud):
+        while slots_ud < 3:
+            slots_ud += 2
+            self._slots_by_side[Pin.Up].insert(0, None)
+            self._slots_by_side[Pin.Up].append(None)
+            self._slots_by_side[Pin.Down].insert(0, None)
+            self._slots_by_side[Pin.Down].append(None)
+        while slots_lr < 2:
+            slots_lr += 2
+            self._slots_by_side[Pin.Left].insert(0, None)
+            self._slots_by_side[Pin.Left].append(None)
+            self._slots_by_side[Pin.Right].insert(0, None)
+            self._slots_by_side[Pin.Right].append(None)            
+        
         if slots_lr > slots_ud:
+            slots_ud = max(slots_ud, 1)
             while slots_lr / slots_ud > 1.6:
                 slots_ud += 2
                 self._slots_by_side[Pin.Up].insert(0, None)
@@ -315,6 +341,7 @@ def ICBuilder(object):
                 self._slots_by_side[Pin.Down].insert(0, None)
                 self._slots_by_side[Pin.Down].append(None)
         elif slots_ud > slots_lr:
+            slots_ud = max(slots_lr, 1)
             while slots_ud / slots_lr > 1.6:
                 slots_lr += 2
                 self._slots_by_side[Pin.Left].insert(0, None)

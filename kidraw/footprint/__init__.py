@@ -49,6 +49,14 @@ class Text(_Struct):
         'line_width': 0.15,
     }
 
+    @property
+    def bounding_box(self):
+        w = len(text)*self.font_size
+        return ((self.position[0]-w/2,
+                 self.position[0]+w/2),
+                (self.position[1]-self.font_size[1]/2,
+                 self.position[1]+self.font_size[1]/2))
+
     def __str__(self):
         return '''(fp_text {0._type} "{0.text}"
   (at {0.position[0]} {0.position[1]})
@@ -70,6 +78,13 @@ class Line(_Struct):
         'line_width': 0.15,
     }
 
+    @property
+    def bounding_box(self):
+        return ((min(self.start[0], self.end[0]),
+                 max(self.start[0], self.end[0])),
+                (min(self.start[1], self.end[1]),
+                 max(self.start[1], self.end[1])))
+
     def __str__(self):
         return '''(fp_line
   (start {0.start[0]} {0.start[1]})
@@ -85,6 +100,11 @@ class Circle(_Struct):
         'layer': Layer.TopSilkscreen,
         'line_width': 0.15,
     }
+
+    @property
+    def bounding_box(self):
+        return ((self.center[0]-self.radius, self.center[0]+self.radius),
+                (self.center[1]-self.radius, self.center[1]+self.radius))
 
     def __str__(self):
         end = (self.center[0]+self.radius, self.center[1])
@@ -105,6 +125,11 @@ class Arc(_Struct):
         'line_width': 0.15,
     }
 
+    @property
+    def bounding_box(self):
+        return ((self.center[0]-self.radius, self.center[0]+self.radius),
+                (self.center[1]-self.radius, self.center[1]+self.radius))
+
     def __str__(self):
         end = (
             self.center[0] + math.sin(math.radians(self.start_angle)) * self.radius,
@@ -124,6 +149,16 @@ class Poly(_Struct):
         'layer': Layer.TopSilkscreen,
         'line_width': 0.15
     }
+
+    @property
+    def bounding_box(self):
+        xmin, xmax, ymin, ymax = 0, 0, 0, 0
+        for p in self.points:
+            xmin = min(xmin, p[0])
+            xmax = max(xmax, p[0])
+            ymin = min(ymin, p[1])
+            ymax = max(ymax, p[1])
+        return (xmin, xmax), (ymin, ymax)
 
     def __str__(self):
         pts = '\n'.join('    (xy {0} {1})'.format(x, y) for x, y in self.points)
@@ -151,6 +186,14 @@ class ThroughHolePad(_Struct):
         'thermal_gap': 0,
     }
 
+    @property
+    def bounding_box(self):
+        xmin = self.center[0]-self.size[0]/2-self.solder_mask_margin
+        xmax = self.center[0]+self.size[0]/2+self.solder_mask_margin
+        ymin = self.center[1]-self.size[1]/2-self.solder_mask_margin
+        ymax = self.center[1]+self.size[1]/2+self.solder_mask_margin
+        return (xmin, xmax), (ymin, ymax)
+    
     def __str__(self):
         return '''(pad {0.name} thru_hole {0.shape.value}
   (at {0.center[0]} {0.center[1]} {0.angle})
@@ -179,6 +222,14 @@ class SurfaceMountPad(_Struct):
         'thermal_gap': 0,
     }
 
+    @property
+    def bounding_box(self):
+        xmin = self.center[0]-self.size[0]/2-self.solder_mask_margin
+        xmax = self.center[0]+self.size[0]/2+self.solder_mask_margin
+        ymin = self.center[1]-self.size[1]/2-self.solder_mask_margin
+        ymax = self.center[1]+self.size[1]/2+self.solder_mask_margin
+        return (xmin, xmax), (ymin, ymax)
+
     def __str__(self):
         ratio = int(-50*(1 - self.solder_paste_ratio))
         return '''(pad {0.name} smd {0.shape.value}
@@ -205,6 +256,14 @@ class TestPad(_Struct):
         'solder_mask_margin': 0,
     }
 
+    @property
+    def bounding_box(self):
+        xmin = self.center[0]-self.size[0]/2-self.solder_mask_margin
+        xmax = self.center[0]+self.size[0]/2+self.solder_mask_margin
+        ymin = self.center[1]-self.size[1]/2-self.solder_mask_margin
+        ymax = self.center[1]+self.size[1]/2+self.solder_mask_margin
+        return (xmin, xmax), (ymin, ymax)
+    
     def __str__(self):
         return '''(pad {0.name} connect {0.shape.value}
   (at {0.center[0]} {0.center[1]} {0.angle})
@@ -221,10 +280,30 @@ class Footprint(_Struct):
     __attributes__ = {
         'name': None,
         'description': '',
-        'refdes': Text(_type='reference', text='REF', layer=Layer.TopSilkscreen),
-        'value': Text(_type='value', text='VAL', layer=Layer.TopAssembly),
+        'refdes': Text(_type='reference', position=None, text='REF', layer=Layer.TopSilkscreen),
+        'value': Text(_type='value', position=None, text='VAL', layer=Layer.TopAssembly),
         'features': [],
     }
+
+    @property
+    def bounding_box(self):
+        xmin, xmax, ymin, ymax = 0, 0, 0, 0
+        for f in self.features:
+            xmin = min(xmin, f.bounding_box[0][0])
+            xmax = max(xmax, f.bounding_box[0][1])
+            ymin = min(ymin, f.bounding_box[1][0])
+            ymax = max(ymax, f.bounding_box[1][1])
+        if self.refdes.position is not None:
+            xmin = min(xmin, self.refdes.position[0])
+            xmax = max(xmax, self.refdes.position[0])
+            ymin = min(ymin, self.refdes.position[1])
+            ymax = max(ymax, self.refdes.position[1])
+        if self.value.position is not None:
+            xmin = min(xmin, self.value.position[0])
+            xmax = max(xmax, self.value.position[0])
+            ymin = min(ymin, self.value.position[1])
+            ymax = max(ymax, self.value.position[1])
+        return (xmin, xmax), (ymin, ymax)
 
     @property
     def filename(self):
@@ -271,12 +350,18 @@ class Footprint(_Struct):
         return self
     
     def __str__(self):
+        refdes = deepcopy(self.refdes)
+        if refdes.position is None:
+            refdes.position = (0, self.bounding_box[1][0]-1)
+        value = deepcopy(self.value)
+        if value.position is None:
+            value.position = (0, self.bounding_box[1][1]+1)
         return '''(module {0.filename}
 (layer F.Cu)
 (tedit 0)
 (at 0 0)
 (descr "{0.description}")
-{0.refdes}
-{0.value}
+{2}
+{3}
 {1}
-)'''.format(self, '\n'.join(str(f) for f in self.features))
+)'''.format(self, '\n'.join(str(f) for f in self.features), refdes, value)

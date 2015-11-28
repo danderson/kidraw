@@ -117,3 +117,14 @@ Diff SVG written to {1} for inspection.
                          0.8,
                          32)
             self._check_svg(name, fp)
+
+    def testQFN(self):
+        for p, n in self.PROFILES.items():
+            name = 'QFN_%s' % n
+            fp = lib.QFN(p,
+                         ipc.Dimension(4.9, 5.1),
+                         ipc.Dimension(0.3, 0.5),
+                         ipc.Dimension(0.18, 0.28),
+                         0.5,
+                         32)
+            self._check_svg(name, fp)

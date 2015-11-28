@@ -146,4 +146,4 @@ def QFN(profile, A, T, W, pitch, num_pins):
         raise ValueError('num_pins must be a multiple of 4 for QFP devices')
     return ipc.in_line_pin_device(
         A, A, A, A, T, W, pitch, num_pins/4, num_pins/4,
-        ipc.LandPatternSize.QFN(profile, A, A, T, pitch))
+        ipc.LandPatternSize.QFN(profile))

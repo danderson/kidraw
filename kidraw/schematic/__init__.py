@@ -298,6 +298,13 @@ def ICBuilder(object):
                 (x1, y1),
             ]))
 
+        # Hidden/don't care pins
+        for n in range(1, self.num_pins+1):
+            if n in self._pins:
+                continue
+            self._schematic.features.append(
+                Pin(numbers=n, pos=(x1+n, y1-1), type=Pin.NotConnected, shape=Pin.Hidden))
+
     def _correct_aspect_ratio(self, slots_lr, slots_ud):
         if slots_lr > slots_ud:
             while slots_lr / slots_ud > 1.6:

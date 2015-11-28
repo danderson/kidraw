@@ -8,7 +8,9 @@ from kidraw import ipc
 class TestLibrary(unittest.TestCase):
     def _check_svg(self, name, fp):
         fp.scale(50)
-        golden = 'golden/%s.svg' % name
+        golden = os.path.join(
+            os.path.dirname(__file__),
+            'golden/%s.svg' % name)
         if os.environ.get('KIDRAW_WRITE_GOLDENS', False):
             with open(golden, 'w') as f:
                 f.write(fp.svg())

@@ -172,7 +172,7 @@ class SurfaceMountPad(_Struct):
         'angle': 0,
         'size': (0, 0),
         'clearance': 0,
-        'solder_mask_margin': 0,
+        'solder_mask_margin': 0.1,
         'solder_paste_margin': 0,
         'solder_paste_ratio': 1,
         'thermal_width': 0,
@@ -188,7 +188,7 @@ class SurfaceMountPad(_Struct):
   (solder_mask_margin {0.solder_mask_margin})
   (clearance {0.clearance})
   (solder_paste_margin {0.solder_paste_margin})
-  (solder_paste_ratio {1})
+  (solder_paste_margin_ratio {1})
   {2}(zone_connect 1)
   {2}(thermal_width {0.thermal_width})
   {2}(thermal_gap {0.thermal_gap})
@@ -202,7 +202,7 @@ class TestPad(_Struct):
         'angle': 0,
         'size': (0, 0),
         'clearance': 0,
-        'solder_mask_margin': 0,
+        'solder_mask_margin': 0.1,
     }
 
     def __str__(self):
@@ -236,8 +236,8 @@ class Footprint(_Struct):
             if isinstance(f, ipc.Drawing.Pad):
                 self.features.append(SurfaceMountPad(
                     name=f.number,
-                    shape=PadShape.Rectangle if f.number == 1 else PadShape.Obround,
-                    center=f.center,
+                    shape=PadShape.Obround if f.obround else PadShape.Rectangle,
+                    center=(f.center[0], -f.center[1]),
                     size=f.size))
             elif isinstance(f, ipc.Drawing.Line):
                 layer = {
@@ -248,8 +248,8 @@ class Footprint(_Struct):
                 }[f.layer]
                 for a, b in zip(f.points, f.points[1:]):
                     self.features.append(Line(
-                        start=a,
-                        end=b,
+                        start=(a[0], -a[1]),
+                        end=(b[0], -b[1]),
                         layer=layer,
                         line_width=f.width))
             elif isinstance(f, ipc.Drawing.Circle):
@@ -262,8 +262,8 @@ class Footprint(_Struct):
                 # Hack: to draw a filled circle, we draw a zero-length
                 # line of width == diameter.
                 self.features.append(Line(
-                    start=f.center,
-                    end=f.center,
+                    start=(f.center[0], -f.center[1]),
+                    end=(f.center[0], -f.center[1]),
                     layer=layer,
                     line_width=2*f.radius))
             else:

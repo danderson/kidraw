@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+<g transform="translate(73.75, 37.5)">
+<rect x="-73.75" y="-37.5" width="132.5" height="75.0" fill="black" />
+<rect x="-50.0" y="-25.0" width="37.5" height="50.0" rx="0" ry="0" fill="red" opacity="0.8" />
+<rect x="12.5" y="-25.0" width="37.5" height="50.0" rx="0" ry="0" fill="red" opacity="0.8" />
+<polyline points="-6.25,0 6.25,0" stroke="blue" stroke-width="7.5" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="0,6.25 0,-6.25" stroke="blue" stroke-width="7.5" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="-38.75,-21.25 -38.75,21.25 38.75,21.25 38.75,-21.25 -38.75,-21.25" stroke="yellow" stroke-width="3.75" opacity="0.6" fill="none" stroke-linecap="round" />
+<polyline points="-2.5,-25.0 2.5,-25.0" stroke="white" stroke-width="7.5" opacity="1" fill="none" stroke-linecap="round" />
+<polyline points="-2.5,25.0 2.5,25.0" stroke="white" stroke-width="7.5" opacity="1" fill="none" stroke-linecap="round" />
+<polyline points="-2.5,-25.0 -2.5,25.0" stroke="white" stroke-width="7.5" opacity="1" fill="none" stroke-linecap="round" />
+<circle cx="-60.0" cy="0" r="5.0" fill="white" opacity="0.8" />
+<polyline points="-70.0,33.75 55.0,33.75 55.0,-33.75 -70.0,-33.75 -70.0,33.75" stroke="magenta" stroke-width="7.5" opacity="0.6" fill="none" stroke-linecap="round" />
+</g>
+</svg>

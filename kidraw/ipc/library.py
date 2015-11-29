@@ -74,6 +74,11 @@ def SOIC(profile, A, B, L, T, W, num_pins, pitch=1.27):
 SOP = SOIC
 
 def SOT23(profile, num_pins):
+    """Construct a land pattern for a SOT23 device.
+    
+    Supports 3, 5, 6 and 8-pin devices, with dimensions from JEDEC
+    TO-236 and MO-178.
+    """
     if num_pins == 3:
         # Dimensions from JEDEC TO-236-A[AB]
         A = ipc.Dimension(1.2, 1.4)
@@ -120,6 +125,37 @@ def SOT23(profile, num_pins):
             A, B, L, B, T, W, 0.65, 4, 0, spec)
     else:
         raise ValueError("No known standard dimensions for SOT23-{0}".format(num_pins))
+
+def SC70(profile, num_pins):
+    """Construct a land pattern for an SC70 device.
+    
+    Supports 5, 6 and 8-pin devices, with dimensions from JEDEC
+    MO-203.
+    """
+    A = ipc.Dimension.from_nominal(1.25, 0.15)
+    B = ipc.Dimension.from_nominal(2, 0.15)
+    L = ipc.Dimension.from_nominal(2.1, 0.3)
+    T = ipc.Dimension(0.26, 0.46)
+    W = ipc.Dimension(0.15, 0.3)
+    if num_pins == 5:
+        # MO-203-C variant AA
+        return ipc.sot23_5(
+            A, B, L, T, W, 0.65,
+            ipc.LandPatternSize.SOT(profile, A, L, T, 0.65))
+    elif num_pins == 6:
+        # MO-203-C variant AB
+        return ipc.in_line_pin_device(
+            A, B, L, B, T, W, 0.65, 3, 0,
+            ipc.LandPatternSize.SOT(profile, A, L, T, 0.65))
+    elif num_pins == 8:
+        # MO-203-C variant BA
+        W = ipc.Dimension(0.15, 0.27)
+        spec = ipc.LandPatternSize.SOT(profile, A, L, T, 0.5)
+        return ipc.in_line_pin_device(
+            A, B, L, B, T, W, 0.5, 4, 0, spec)
+    else:
+        raise ValueError("No known standard dimensions for SOT23-{0}".format(num_pins))
+    
 
 def QFP(profile, A, L, T, W, pitch, num_pins):
     """Construct a land pattern for a QFP device.

@@ -108,6 +108,24 @@ Diff SVG written to {1} for inspection.
             fp = lib.SOT23(p, 8)
             self._check_svg(name, fp)
 
+    def testSC70_5(self):
+        for p, n in self.PROFILES.items():
+            name = 'SC70-5_%s' % n
+            fp = lib.SC70(p, 5)
+            self._check_svg(name, fp)
+
+    def testSC70_6(self):
+        for p, n in self.PROFILES.items():
+            name = 'SC70-6_%s' % n
+            fp = lib.SC70(p, 6)
+            self._check_svg(name, fp)
+
+    def testSC70_8(self):
+        for p, n in self.PROFILES.items():
+            name = 'SC70-8_%s' % n
+            fp = lib.SC70(p, 8)
+            self._check_svg(name, fp)
+
     def testQFP(self):
         for p, n in self.PROFILES.items():
             name = 'QFP_%s' % n

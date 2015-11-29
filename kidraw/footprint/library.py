@@ -30,6 +30,11 @@ def SOT23(num_pins, profile=ipc.LandPatternSize.Nominal):
     f.from_ipc(lib.SOT23(profile, num_pins))
     return f
 
+def SC70(num_pins, profile=ipc.LandPatternSize.Nominal):
+    f = fp.Footprint(name='SC70-{0}'.format(num_pins))
+    f.from_ipc(lib.SC70(profile, num_pins))
+    return f
+
 def QFP(A, L, T, W, pitch, num_pins, profile=ipc.LandPatternSize.Nominal):
     f = fp.Footprint(name='{0}-QFP'.format(num_pins),
                      description='{0}-pin Quad Flat Package'.format(num_pins))

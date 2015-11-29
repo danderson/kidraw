@@ -51,7 +51,7 @@ class Text(_Struct):
 
     @property
     def bounding_box(self):
-        w = len(text)*self.font_size
+        w = len(self.text)*self.font_size[0]
         return ((self.position[0]-w/2,
                  self.position[0]+w/2),
                 (self.position[1]-self.font_size[1]/2,

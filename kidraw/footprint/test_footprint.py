@@ -289,8 +289,8 @@ class FootprintTest(unittest.TestCase):
 (tedit 0)
 (at 0 0)
 (descr "")
-(fp_text reference "REF" (at 0 0) (layer F.SilkS) (effects (font (size 1 1) (thickness 0.15))))
-(fp_text value "VAL" (at 0 0) (layer F.Fab) (effects (font (size 1 1) (thickness 0.15))))
+(fp_text reference "REF" (at 0 -1) (layer F.SilkS) (effects (font (size 1 1) (thickness 0.15))))
+(fp_text value "VAL" (at 0 1) (layer F.Fab) (effects (font (size 1 1) (thickness 0.15))))
 )''')
 
         f.name = 'foo'
@@ -300,8 +300,8 @@ class FootprintTest(unittest.TestCase):
 (tedit 0)
 (at 0 0)
 (descr "A test footprint")
-(fp_text reference "REF" (at 0 0) (layer F.SilkS) (effects (font (size 1 1) (thickness 0.15))))
-(fp_text value "VAL" (at 0 0) (layer F.Fab) (effects (font (size 1 1) (thickness 0.15))))
+(fp_text reference "REF" (at 0 -1) (layer F.SilkS) (effects (font (size 1 1) (thickness 0.15))))
+(fp_text value "VAL" (at 0 1) (layer F.Fab) (effects (font (size 1 1) (thickness 0.15))))
 )''')
 
         f.refdes.layer = fp.Layer.BottomSilkscreen
@@ -311,8 +311,8 @@ class FootprintTest(unittest.TestCase):
 (tedit 0)
 (at 0 0)
 (descr "A test footprint")
-(fp_text reference "REF" (at 0 0) (layer B.SilkS) (effects (font (size 1 1) (thickness 0.15))))
-(fp_text value "VAL" (at 0 0) (layer F.Fab) hide (effects (font (size 1 1) (thickness 0.15))))
+(fp_text reference "REF" (at 0 -1) (layer B.SilkS) (effects (font (size 1 1) (thickness 0.15))))
+(fp_text value "VAL" (at 0 1) (layer F.Fab) hide (effects (font (size 1 1) (thickness 0.15))))
 )''')
 
         f.features.append(fp.Text(text='test feature'))
@@ -321,7 +321,7 @@ class FootprintTest(unittest.TestCase):
 (tedit 0)
 (at 0 0)
 (descr "A test footprint")
-(fp_text reference "REF" (at 0 0) (layer B.SilkS) (effects (font (size 1 1) (thickness 0.15))))
-(fp_text value "VAL" (at 0 0) (layer F.Fab) hide (effects (font (size 1 1) (thickness 0.15))))
+(fp_text reference "REF" (at 0 -1) (layer B.SilkS) (effects (font (size 1 1) (thickness 0.15))))
+(fp_text value "VAL" (at 0 1) (layer F.Fab) hide (effects (font (size 1 1) (thickness 0.15))))
 (fp_text user "test feature" (at 0 0) (layer F.SilkS) (effects (font (size 1 1) (thickness 0.15))))
 )''')

@@ -4,7 +4,7 @@
 (at 0 0)
 (descr "32-pin Quad Flat Package")
 (fp_text reference "REF"
-  (at 0 0)
+  (at 0 -6.225)
   (layer F.SilkS)
   #hide
   (effects
@@ -15,7 +15,7 @@
   )
 )
 (fp_text value "VAL"
-  (at 0 0)
+  (at 0 6.225)
   (layer F.Fab)
   #hide
   (effects

@@ -5,6 +5,11 @@ from kidraw.ipc import library as lib
 metric = lambda s: ('metric', s, lib.metric(s))
 imperial = lambda s: ('imperial', s, lib.imperial(s))
 
+def test_point(size):
+    f = fp.Footprint(name='Test Point {0}mm'.format(size))
+    f.features = [fp.TestPad(name=1, size=(size, size))]
+    return f
+
 def chip(size, polarized=False, profile=ipc.LandPatternSize.Nominal):
     t, n, s = size
     desc = '{0} ({1}) {2}chip device'.format(n, t, 'polarized ' if polarized else '')

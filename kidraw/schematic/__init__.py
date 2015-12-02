@@ -224,13 +224,14 @@ class Pin(_Struct):
         return self.pos, (self.pos[0]+off[0], self.pos[1]+off[1])
 
 class ICBuilder(object):
-    def __init__(self, schematic, num_pins, slot_spacing=150, pin_len=200, edge_margin=50, grid_snap=50):
+    def __init__(self, schematic, num_pins, slot_spacing=150, pin_len=200, edge_margin=50, grid_snap=50, target_aspect_ratio=1.6):
         self._schematic = schematic
         self._num_pins = num_pins
         self._slot_spacing = slot_spacing
         self._pin_len = pin_len
         self._edge_margin = edge_margin
         self._grid_snap = grid_snap
+        self._target_aspect_ratio = target_aspect_ratio
 
         self._side = None
         self._pins = {}
@@ -251,8 +252,8 @@ class ICBuilder(object):
                        len(self._slots_by_side[Pin.Down]))
         slots_lr, slots_ud = self._correct_aspect_ratio(slots_lr, slots_ud)
 
-        w = (slots_ud-1)*self._slot_spacing + 2*self._edge_margin
-        h = (slots_lr-1)*self._slot_spacing + 2*self._edge_margin
+        w = (max(slots_ud-1, 0))*self._slot_spacing + 2*self._edge_margin
+        h = (max(slots_lr-1, 0))*self._slot_spacing + 2*self._edge_margin
 
         x1 = -w/2
         if x1 % self._grid_snap != 0:
@@ -319,30 +320,15 @@ class ICBuilder(object):
                 Pin(numbers=n, pos=(x1+n, y1-1), type=Pin.NotConnected, shape=Pin.Hidden))
 
     def _correct_aspect_ratio(self, slots_lr, slots_ud):
-        while slots_ud < 3:
-            slots_ud += 2
-            self._slots_by_side[Pin.Up].insert(0, None)
-            self._slots_by_side[Pin.Up].append(None)
-            self._slots_by_side[Pin.Down].insert(0, None)
-            self._slots_by_side[Pin.Down].append(None)
-        while slots_lr < 2:
-            slots_lr += 2
-            self._slots_by_side[Pin.Left].insert(0, None)
-            self._slots_by_side[Pin.Left].append(None)
-            self._slots_by_side[Pin.Right].insert(0, None)
-            self._slots_by_side[Pin.Right].append(None)            
-        
-        if slots_lr > slots_ud:
-            slots_ud = max(slots_ud, 1)
-            while slots_lr / slots_ud > 1.6:
+        if slots_ud > 0 and slots_lr > slots_ud:
+            while slots_lr / slots_ud > self._target_aspect_ratio:
                 slots_ud += 2
                 self._slots_by_side[Pin.Up].insert(0, None)
                 self._slots_by_side[Pin.Up].append(None)
                 self._slots_by_side[Pin.Down].insert(0, None)
                 self._slots_by_side[Pin.Down].append(None)
-        elif slots_ud > slots_lr:
-            slots_ud = max(slots_lr, 1)
-            while slots_ud / slots_lr > 1.6:
+        elif slots_lr > 0 and slots_ud > slots_lr:
+            while slots_ud / slots_lr > self._target_aspect_ratio:
                 slots_lr += 2
                 self._slots_by_side[Pin.Left].insert(0, None)
                 self._slots_by_side[Pin.Left].append(None)

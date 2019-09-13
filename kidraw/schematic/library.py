@@ -178,3 +178,15 @@ def switch():
         sch.Line(points=[(-50, 0), (50, 50)]),
     ]
     return s
+
+def fuse():
+    s = sch.Schematic(name='Fuse',
+                      refdes='F',
+                      show_pin_text=False)
+    s.features = [
+        sch.Pin(numbers=1, pos=(-100, 0), len=60, dir=sch.Pin.Right, type=sch.Pin.Passive),
+        sch.Pin(numbers=2, pos=(100, 0), len=60, dir=sch.Pin.Left, type=sch.Pin.Passive),
+        sch.Arc(center=(-20, 0), radius=20, angle_start=180, angle_end=0),
+        sch.Arc(center=(20, 0), radius=20, angle_start=0, angle_end=-180),
+    ]
+    return s

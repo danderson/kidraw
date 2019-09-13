@@ -870,7 +870,7 @@ class LandPatternSize(object):
 
 def _printret(x):
     """Debugging helper"""
-    print x
+    print(x)
     return x
     
 def _rms(*args):

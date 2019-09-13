@@ -67,7 +67,7 @@ def SOIC(profile, A, B, L, T, W, num_pins, pitch=1.27):
         raise ValueError('num_pins must be even for SOIC devices')
     return ipc.in_line_pin_device(
         A=A, B=B, LA=L, LB=B, T=T, W=W, pitch=pitch,
-        pins_leftright=num_pins/2, pins_updown=0,
+        pins_leftright=int(num_pins/2), pins_updown=0,
         spec=ipc.LandPatternSize.SOIC(
             profile=profile, A=A, L=L, T=T, pitch=pitch))
 
@@ -167,7 +167,7 @@ def QFP(profile, A, L, T, W, pitch, num_pins):
     if num_pins % 4 != 0:
         raise ValueError('num_pins must be a multiple of 4 for QFP devices')
     return ipc.in_line_pin_device(
-        A, A, L, L, T, W, pitch, num_pins/4, num_pins/4,
+        A, A, L, L, T, W, pitch, int(num_pins/4), int(num_pins/4),
         ipc.LandPatternSize.QFP(profile, A, L, T, pitch))
 
 def QFN(profile, A, T, W, pitch, num_pins):

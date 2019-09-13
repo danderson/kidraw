@@ -59,7 +59,7 @@ class Text(_Struct):
 
     def __str__(self):
         return '''(fp_text {0._type} "{0.text}"
-  (at {0.position[0]} {0.position[1]})
+  (at {0.position[0]:.3f} {0.position[1]:.3f})
   (layer {0.layer.value})
   {1}hide
   (effects
@@ -87,8 +87,8 @@ class Line(_Struct):
 
     def __str__(self):
         return '''(fp_line
-  (start {0.start[0]} {0.start[1]})
-  (end {0.end[0]} {0.end[1]})
+  (start {0.start[0]:.3f} {0.start[1]:.3f})
+  (end {0.end[0]:.3f} {0.end[1]:.3f})
   (layer {0.layer.value})
   (width {0.line_width})
 )'''.format(self)
@@ -109,8 +109,8 @@ class Circle(_Struct):
     def __str__(self):
         end = (self.center[0]+self.radius, self.center[1])
         return '''(fp_circle
-  (center {0.center[0]} {0.center[1]})
-  (end {1[0]} {1[1]})
+  (center {0.center[0]:.3f} {0.center[1]:.3f})
+  (end {1[0]:.3f} {1[1]:.3f})
   (layer {0.layer.value})
   (width {0.line_width})
 )'''.format(self, end)
@@ -195,17 +195,21 @@ class ThroughHolePad(_Struct):
         return (xmin, xmax), (ymin, ymax)
     
     def __str__(self):
+        if isinstance(self.drill_size, tuple):
+            d = '(drill oval {0[0]:.3f} {0[1]:.3f})'.format(self.drill_size)
+        else:
+            d = '(drill {0})'.format(self.drill_size)
         return '''(pad {0.name} thru_hole {0.shape.value}
-  (at {0.center[0]} {0.center[1]} {0.angle})
-  (size {0.size[0]} {0.size[1]})
-  (drill {0.drill_size})
+  (at {0.center[0]:.3f} {0.center[1]:.3f} {0.angle})
+  (size {0.size[0]:.3f} {0.size[1]:.3f})
+  {1}
   (layers *.Cu *.Mask F.SilkS)
   (solder_mask_margin {0.solder_mask_margin})
   (clearance {0.clearance})
-  {1}(zone_connect 1)
-  {1}(thermal_width {0.thermal_width})
-  {1}(thermal_gap {0.thermal_gap})
-)'''.format(self, '#' if self.thermal_gap == 0 else '')
+  {2}(zone_connect 1)
+  {2}(thermal_width {0.thermal_width})
+  {2}(thermal_gap {0.thermal_gap})
+)'''.format(self, d, '#' if self.thermal_gap == 0 else '')
 
 class SurfaceMountPad(_Struct):
     __attributes__ = {
@@ -233,8 +237,8 @@ class SurfaceMountPad(_Struct):
     def __str__(self):
         ratio = int(-50*(1 - self.solder_paste_ratio))
         return '''(pad {0.name} smd {0.shape.value}
-  (at {0.center[0]} {0.center[1]} {0.angle})
-  (size {0.size[0]} {0.size[1]})
+  (at {0.center[0]:.3f} {0.center[1]:.3f} {0.angle})
+  (size {0.size[0]:.3f} {0.size[1]:.3f})
   (layers F.Cu F.Paste F.Mask)
   (solder_mask_margin {0.solder_mask_margin})
   (clearance {0.clearance})
@@ -266,8 +270,8 @@ class TestPad(_Struct):
     
     def __str__(self):
         return '''(pad {0.name} connect {0.shape.value}
-  (at {0.center[0]} {0.center[1]} {0.angle})
-  (size {0.size[0]} {0.size[1]})
+  (at {0.center[0]:.3f} {0.center[1]:.3f} {0.angle})
+  (size {0.size[0]:.3f} {0.size[1]:.3f})
   (layers F.Cu F.Mask)
   (solder_mask_margin {0.solder_mask_margin})
   (clearance {0.clearance})

@@ -10,7 +10,8 @@ import sys
 from kidraw import ipc
 from kidraw.ipc import library as lib
 
-class Node(object):
+
+class Node:
     def __init__(self, x=0, y=0, w=800, h=None):
         self.x, self.y = x, y
         self.w, self.h = w, h
@@ -27,7 +28,7 @@ class Node(object):
         if self.down is not None:
             for r in self.down:
                 yield r
-        
+
     def find_node(self, w, h):
         if self.drawing != None:
             d = self.down.find_node(w, h) if self.down != None else None
@@ -50,38 +51,40 @@ class Node(object):
                           self.w - w,
                           h)
 
+
 def binpack(drawings, w):
     def k(d):
         return -d[1].length * d[1].width
     drawings = sorted(drawings, key=k)
     t = Node(w=w)
     for n, d in drawings:
-        w, h = d.length+10, d.width+30
+        w, h = d.length + 10, d.width + 30
         t.find_node(w, h).allocate((n, d), w, h)
     w, h = 0, 0
     for (_, d), x, y in t:
-        w = max(w, x+d.length)
-        h = max(h, y+d.width+30)
+        w = max(w, x + d.length)
+        h = max(h, y + d.width + 30)
     out = [
-        '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="{0}" height="{1}">'.format(w, h),
+        f'<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="{w}" height="{h}">',
     ]
-    out.append('<rect width="{0}" height="{1}" fill="black" />'.format(w, h))
+    out.append(f'<rect width="{w}" height="{h}" fill="black" />')
     for (n, d), x, y in t:
         out.extend([
-            '<g transform="translate({0}, {1})">'.format(x, y),
+            f'<g transform="translate({x}, {y})">',
             d.svg(background_color="rgba(0, 0, 0, 0)"),
-            '<text x="{0}" y="{1}" fill="green" stroke="green" text-anchor="middle" font-size="16">{2}</text>'.format(d.length/2, d.width+20, n),
-            '</g>',
+            f'<text x="{d.length / 2}" y="{d.width + 20}" fill="green" stroke="green" text-anchor="middle" font-size="16">{n}</text>',
+            "</g>",
         ])
-    out.append('</svg>')
-    return '\n'.join(out)
+    out.append("</svg>")
+    return "\n".join(out)
+
 
 def drawing(f):
     def run(*args, **kwargs):
         try:
             return f(*args, **kwargs)
         except ipc.InfeasibleFootprint as e:
-            print >>sys.stderr, e
+            print >> sys.stderr, e
             r = ipc.Drawing()
             r.features += [
                 ipc.Drawing.Line(
@@ -100,6 +103,7 @@ def drawing(f):
             return r
     return run
 
+
 @drawing
 def tqfp(profile):
     """STM32F042K6T6 microcontroller"""
@@ -111,6 +115,7 @@ def tqfp(profile):
 
     return lib.QFP(profile, A, L, T, W, pitch, 32)
 
+
 @drawing
 def qfn(profile):
     """MAX3738 laser driver"""
@@ -120,6 +125,7 @@ def qfn(profile):
     pitch = 0.5
 
     return lib.QFN(profile, A, T, W, pitch, 24)
+
 
 @drawing
 def pqfn(profile):
@@ -135,6 +141,7 @@ def pqfn(profile):
         pins_leftright=5, pins_updown=5,
         spec=ipc.LandPatternSize.QFN(profile))
 
+
 @drawing
 def dfn(profile):
     """PIC12F609"""
@@ -148,6 +155,7 @@ def dfn(profile):
         pins_leftright=4, pins_updown=0,
         spec=ipc.LandPatternSize.DFN(profile))
 
+
 @drawing
 def soic(profile):
     """PIC12F609 microcontroller"""
@@ -157,6 +165,7 @@ def soic(profile):
     T = ipc.Dimension(0.4, 1.27)
     W = ipc.Dimension(0.31, 0.51)
     return lib.SOIC(profile, A, B, L, T, W, 8)
+
 
 @drawing
 def ssop(profile):
@@ -169,6 +178,7 @@ def ssop(profile):
     pitch = 0.65
 
     return lib.SOP(profile, A, B, L, T, W, 16, pitch)
+
 
 @drawing
 def sc70(profile):
@@ -184,6 +194,7 @@ def sc70(profile):
         A=A, B=B, LA=L, LB=B, T=T, W=W, pitch=pitch,
         pins_leftright=4, pins_updown=0, spec=spec)
 
+
 @drawing
 def tsopj(profile):
     """AAT1232 step-up converter"""
@@ -198,6 +209,7 @@ def tsopj(profile):
         A=A, B=B, LA=L, LB=B, T=T, W=W, pitch=pitch,
         pins_leftright=6, pins_updown=0, spec=spec)
 
+
 @drawing
 def SOD(profile, polarized):
     A = ipc.Dimension(2.55, 2.85)
@@ -211,6 +223,7 @@ def SOD(profile, polarized):
             profile, A=A, L=L, T=T),
         polarized=polarized)
 
+
 @drawing
 def Molded(profile, polarized):
     A = ipc.Dimension.from_nominal(3.5, 0.2)
@@ -222,6 +235,7 @@ def Molded(profile, polarized):
         spec=ipc.LandPatternSize.inward_L_leads(profile),
         polarized=polarized)
 
+
 @drawing
 def MELF(profile, polarized):
     A = ipc.Dimension(4.7, 5.2)
@@ -232,34 +246,35 @@ def MELF(profile, polarized):
         spec=ipc.LandPatternSize.MELF(profile),
         polarized=polarized)
 
+
 PROFILE = {
-    ipc.LandPatternSize.Most: 'M',
-    ipc.LandPatternSize.Nominal: 'N',
-    ipc.LandPatternSize.Least: 'L',
+    ipc.LandPatternSize.Most: "M",
+    ipc.LandPatternSize.Nominal: "N",
+    ipc.LandPatternSize.Least: "L",
 }
 
 fps = []
 for p, l in PROFILE.items():
     fps.extend([
-        ('32-TQFP-'+l, tqfp(p)),
-        ('24-QFN-'+l, qfn(p)),
-        ('20-PQFN-'+l, pqfn(p)),
-        ('8-DFN-'+l, dfn(p)),
-        ('8-SOIC-'+l, soic(p)),
-        ('16-SSOP-'+l, ssop(p)),
-        ('8-SC70-'+l, sc70(p)),
-        ('12-TSOPJ-'+l, tsopj(p)),
+        ("32-TQFP-" + l, tqfp(p)),
+        ("24-QFN-" + l, qfn(p)),
+        ("20-PQFN-" + l, pqfn(p)),
+        ("8-DFN-" + l, dfn(p)),
+        ("8-SOIC-" + l, soic(p)),
+        ("16-SSOP-" + l, ssop(p)),
+        ("8-SC70-" + l, sc70(p)),
+        ("12-TSOPJ-" + l, tsopj(p)),
     ])
     for polarized in (True, False):
-        pol = 'P' if polarized else ''
-        for s in ('0402', '0603', '0805', '1206'):
-            fps.append(('{0}-{1}-{2}'.format(s, pol, l),
+        pol = "P" if polarized else ""
+        for s in ("0402", "0603", "0805", "1206"):
+            fps.append((f"{s}-{pol}-{l}",
                         lib.chip(p, lib.imperial(s), polarized)))
-        fps.append(('SOD-%s-%s' % (pol, l), SOD(p, polarized)))
-        fps.append(('Molded-%s-%s' % (pol, l), Molded(p, polarized)))
-        fps.append(('MELF-%s-%s' % (pol, l), MELF(p, polarized)))
+        fps.append(("SOD-%s-%s" % (pol, l), SOD(p, polarized)))
+        fps.append(("Molded-%s-%s" % (pol, l), Molded(p, polarized)))
+        fps.append(("MELF-%s-%s" % (pol, l), MELF(p, polarized)))
     for s in (3, 5, 6, 8):
-        fps.append(('SOT23-{0}'.format(s), lib.SOT23(p, s)))
+        fps.append((f"SOT23-{s}", lib.SOT23(p, s)))
 
-with open('card.svg', 'w') as f:
+with open("card.svg", "w") as f:
     f.write(binpack([(n, x.scale(30)) for n, x in fps], w=1200))

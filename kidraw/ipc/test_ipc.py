@@ -1,12 +1,15 @@
 import unittest
+from itertools import starmap
 
 from kidraw import ipc
+
 
 class TestDrawing(unittest.TestCase):
     """Trivial "code execution" tests for Drawing.*.
 
     This is really just testing for typos.
     """
+
     def testLayer(self):
         ls = [ipc.Drawing.Layer.Silkscreen,
               ipc.Drawing.Layer.Courtyard,
@@ -17,6 +20,7 @@ class TestDrawing(unittest.TestCase):
         ipc.Drawing.Line(layer=1, points=2, width=3)
         ipc.Drawing.Circle(layer=1, center=2, radius=3)
         ipc.Drawing.Pad(number=1, center=2, size=3)
+
 
 class TestDimension(unittest.TestCase):
     def testConstruct(self):
@@ -36,6 +40,7 @@ class TestDimension(unittest.TestCase):
         # we passed in.
         self.assertEqual(d2.nominal, 2.5)
         self.assertEqual(d1.nominal, d2.nominal)
+
 
 class TestLandPatternSize(unittest.TestCase):
     # These tests don't check for exact values, since that would just
@@ -96,7 +101,7 @@ class TestLandPatternSize(unittest.TestCase):
             self.assertGreaterEqual(lp.OuterPadSpan(L, T), 14)
             self.assertLessEqual(lp.InnerPadSpan(L, T), 12)
             self.assertGreaterEqual(lp.PadWidth(W), 0.5)
-                     
+
     def testGullwingLeads(self):
         A = ipc.Dimension.from_nominal(10, 0.1)
         L = ipc.Dimension.from_nominal(14, 0.1)
@@ -116,41 +121,41 @@ class TestLandPatternSize(unittest.TestCase):
 
             lp = self._makeLP(ipc.LandPatternSize.gullwing_leads,
                               L, T, W, {
-                                  'A': A,
-                                  'L': L,
-                                  'T': T,
-                                  'pitch': 1})
+                                  "A": A,
+                                  "L": L,
+                                  "T": T,
+                                  "pitch": 1})
 
             # Pad should at least cover the nominal pin footprint.
             self.assertGreaterEqual(lp.OuterPadSpan(L, T), 14)
             self.assertLessEqual(lp.InnerPadSpan(L, T), 12)
             self.assertGreaterEqual(lp.PadWidth(W), 0.5)
-        
+
             # Footprint whose pins sneak under the plastic package. Just
             # check that we get different constants, per the standard.
             L2 = ipc.Dimension.from_nominal(10, 0.1)
             lp2 = self._makeLP(ipc.LandPatternSize.gullwing_leads,
                                L2, T, W, {
-                                   'A': A,
-                                   'L': L2,
-                                   'T': T,
-                                   'pitch': 1})
+                                   "A": A,
+                                   "L": L2,
+                                   "T": T,
+                                   "pitch": 1})
             self.assertNotEqual(lp, lp2)
 
             # Fine-pitch footprint.
             lp2 = self._makeLP(ipc.LandPatternSize.gullwing_leads,
                                L, T, W, {
-                                   'A': A,
-                                   'L': L,
-                                   'T': T,
-                                   'pitch': 0.1})
+                                   "A": A,
+                                   "L": L,
+                                   "T": T,
+                                   "pitch": 0.1})
             self.assertNotEqual(lp, lp2)
 
     def testChip(self):
         L = ipc.Dimension.from_nominal(14, 0.1)
         T = ipc.Dimension.from_nominal(1, 0.1)
         W = ipc.Dimension.from_nominal(0.5, 0.1)
-        lp = self._makeLP(ipc.LandPatternSize.chip, L, T, W, {'L': L})
+        lp = self._makeLP(ipc.LandPatternSize.chip, L, T, W, {"L": L})
 
         # Pad should at least cover the nominal pin footprint.
         self.assertGreaterEqual(lp.OuterPadSpan(L, T), 14)
@@ -160,7 +165,7 @@ class TestLandPatternSize(unittest.TestCase):
         # Tiny components
         L = ipc.Dimension.from_nominal(1, 0.1)
         T = ipc.Dimension.from_nominal(0.2, 0.01)
-        lp2 = self._makeLP(ipc.LandPatternSize.chip, L, T, W, {'L': L})
+        lp2 = self._makeLP(ipc.LandPatternSize.chip, L, T, W, {"L": L})
         self.assertNotEqual(lp, lp2)
 
     def testElectrolyticCapacitor(self):
@@ -168,7 +173,7 @@ class TestLandPatternSize(unittest.TestCase):
         T = ipc.Dimension.from_nominal(1, 0.1)
         W = ipc.Dimension.from_nominal(0.5, 0.1)
         H = ipc.Dimension.from_nominal(5, 0.1)
-        lp = self._makeLP(ipc.LandPatternSize.electrolytic_capacitor, L, T, W, {'H': H})
+        lp = self._makeLP(ipc.LandPatternSize.electrolytic_capacitor, L, T, W, {"H": H})
 
         # Pad should at least cover the nominal pin footprint.
         self.assertGreaterEqual(lp.OuterPadSpan(L, T), 14)
@@ -177,30 +182,30 @@ class TestLandPatternSize(unittest.TestCase):
 
         # Tall components
         H = ipc.Dimension.from_nominal(25, 0.1)
-        lp2 = self._makeLP(ipc.LandPatternSize.electrolytic_capacitor, L, T, W, {'H': H})
+        lp2 = self._makeLP(ipc.LandPatternSize.electrolytic_capacitor, L, T, W, {"H": H})
         self.assertNotEqual(lp, lp2)
+
 
 class TestDrawing(unittest.TestCase):
     def _drawing_as_string(self, d):
         ret = []
         for f in d.features:
             if isinstance(f, ipc.Drawing.Line):
-                pts = ' '.join('({0:.2f} {1:.2f})'.format(x, y)
-                               for x, y in f.points)
-                ret.append('LINE {0} {1:.2f} {2}'.format(f.layer.name, f.width, pts))
+                pts = " ".join(starmap("({0:.2f} {1:.2f})".format, f.points))
+                ret.append(f"LINE {f.layer.name} {f.width:.2f} {pts}")
             elif isinstance(f, ipc.Drawing.Circle):
-                ret.append('CIRCLE {0} ({1[0]:.2f} {1[1]:.2f}) {2:.2f}'.format(f.layer.name, f.center, f.radius))
+                ret.append(f"CIRCLE {f.layer.name} ({f.center[0]:.2f} {f.center[1]:.2f}) {f.radius:.2f}")
             elif isinstance(f, ipc.Drawing.Pad):
-                ret.append('PAD {0} ({1[0]:.2f} {1[1]:.2f}) ({2[0]:.2f} {2[1]:.2f})'.format(f.number, f.center, f.size))
+                ret.append(f"PAD {f.number} ({f.center[0]:.2f} {f.center[1]:.2f}) ({f.size[0]:.2f} {f.size[1]:.2f})")
             else:
-                raise ValueError('unexpected drawing feature type')
-        return '\n'.join(sorted(ret))
+                raise ValueError("unexpected drawing feature type")
+        return "\n".join(sorted(ret))
 
     def _check_drawing(self, features, expected):
         self.maxDiff = None
-        expected = '\n'.join(sorted(expected.strip().splitlines())).strip()
+        expected = "\n".join(sorted(expected.strip().splitlines())).strip()
         self.assertMultiLineEqual(self._drawing_as_string(features), expected)
-    
+
     def testTwoTerminalChip(self):
         # Chip-ish device
         A = ipc.Dimension.from_nominal(10, 0)
@@ -210,7 +215,7 @@ class TestDrawing(unittest.TestCase):
         W = ipc.Dimension.from_nominal(5, 0)
         spec = ipc.LandPatternSize(toe=0, heel=0, side=0, courtyard=0)
 
-        expected = '''
+        expected = """
 PAD 1 (-4.50 0.00) (1.15 5.15)
 PAD 2 (4.50 0.00) (1.15 5.15)
 
@@ -223,12 +228,12 @@ LINE Documentation 0.15 (-1.96 0.00) (1.96 0.00)
 LINE Documentation 0.15 (0.00 -1.96) (0.00 1.96)
 
 LINE Courtyard 0.15 (-5.08 -2.65) (5.08 -2.65) (5.08 2.65) (-5.08 2.65) (-5.08 -2.65)
-'''
+"""
         self._check_drawing(
             ipc.two_terminal_symmetric_device(
                 A, B, L, T, W, spec, polarized=False), expected)
 
-        expected = '''
+        expected = """
 PAD 1 (-4.50 0.00) (1.15 5.15)
 PAD 2 (4.50 0.00) (1.15 5.15)
 
@@ -243,7 +248,7 @@ LINE Documentation 0.15 (-1.96 0.00) (1.96 0.00)
 LINE Documentation 0.15 (0.00 -1.96) (0.00 1.96)
 
 LINE Courtyard 0.15 (-5.38 -2.65) (5.08 -2.65) (5.08 2.65) (-5.38 2.65) (-5.38 -2.65)
-'''
+"""
         self._check_drawing(
             ipc.two_terminal_symmetric_device(
                 A, B, L, T, W, spec, polarized=True), expected)
@@ -257,7 +262,7 @@ LINE Courtyard 0.15 (-5.38 -2.65) (5.08 -2.65) (5.08 2.65) (-5.38 2.65) (-5.38 -
         W = ipc.Dimension.from_nominal(5, 0)
         spec = ipc.LandPatternSize(toe=0, heel=0, side=0, courtyard=0)
 
-        expected = '''
+        expected = """
 PAD 1 (-4.50 0.00) (1.15 5.15)
 PAD 2 (4.50 0.00) (1.15 5.15)
 
@@ -274,12 +279,12 @@ LINE Documentation 0.15 (-1.96 0.00) (1.96 0.00)
 LINE Documentation 0.15 (0.00 -1.96) (0.00 1.96)
 
 LINE Courtyard 0.15 (-5.08 -3.58) (5.08 -3.58) (5.08 3.58) (-5.08 3.58) (-5.08 -3.58)
-'''
+"""
         self._check_drawing(
             ipc.two_terminal_symmetric_device(
                 A, B, L, T, W, spec, polarized=False), expected)
 
-        expected = '''
+        expected = """
 PAD 1 (-4.50 0.00) (1.15 5.15)
 PAD 2 (4.50 0.00) (1.15 5.15)
 
@@ -297,7 +302,7 @@ LINE Documentation 0.15 (-1.96 0.00) (1.96 0.00)
 LINE Documentation 0.15 (0.00 -1.96) (0.00 1.96)
 
 LINE Courtyard 0.15 (-5.40 -3.58) (5.08 -3.58) (5.08 3.60) (-5.40 3.60) (-5.40 -3.58)
-'''
+"""
         self._check_drawing(
             ipc.two_terminal_symmetric_device(
                 A, B, L, T, W, spec, polarized=True), expected)
@@ -312,7 +317,7 @@ LINE Courtyard 0.15 (-5.40 -3.58) (5.08 -3.58) (5.08 3.60) (-5.40 3.60) (-5.40 -
         pitch = 1
         spec = ipc.LandPatternSize(toe=0, heel=0, side=0, courtyard=0)
 
-        expected = '''
+        expected = """
 PAD 1 (-3.25 1.50) (0.65 0.65)
 PAD 2 (-3.25 0.50) (0.65 0.65)
 PAD 3 (-3.25 -0.50) (0.65 0.65)
@@ -350,14 +355,13 @@ LINE Documentation 0.15 (0.00 0.62) (0.00 -0.62)
 LINE Documentation 0.15 (0.62 0.00) (-0.62 0.00)
 
 LINE Courtyard 0.15 (-3.98 -2.58) (3.58 -2.58) (3.58 2.58) (-3.98 2.58) (-3.98 -2.58)
-'''
+"""
         self._check_drawing(
             ipc.in_line_pin_device(
                 A, B, LA, LB, T, W, pitch, 4, 0, spec), expected)
 
-        
         LA = ipc.Dimension.from_nominal(5, 0)
-        expected = '''
+        expected = """
 PAD 1 (-2.25 1.50) (0.65 0.65)
 PAD 2 (-2.25 0.50) (0.65 0.65)
 PAD 3 (-2.25 -0.50) (0.65 0.65)
@@ -389,11 +393,10 @@ LINE Documentation 0.15 (0.00 0.62) (0.00 -0.62)
 LINE Documentation 0.15 (0.62 0.00) (-0.62 0.00)
 
 LINE Courtyard 0.15 (-2.97 -2.58) (2.58 -2.58) (2.58 2.58) (-2.97 2.58) (-2.97 -2.58)
-'''
+"""
         self._check_drawing(
             ipc.in_line_pin_device(
                 A, B, LA, LB, T, W, pitch, 4, 0, spec), expected)
-
 
     def testInLineFourSides(self):
         A = ipc.Dimension.from_nominal(5, 0)
@@ -405,7 +408,7 @@ LINE Courtyard 0.15 (-2.97 -2.58) (2.58 -2.58) (2.58 2.58) (-2.97 2.58) (-2.97 -
         pitch = 1
         spec = ipc.LandPatternSize(toe=0, heel=0, side=0, courtyard=0)
 
-        expected = '''
+        expected = """
 PAD 1 (-3.25 0.50) (0.65 0.65)
 PAD 2 (-3.25 -0.50) (0.65 0.65)
 PAD 3 (-0.50 -3.25) (0.65 0.65)
@@ -443,14 +446,14 @@ LINE Documentation 0.15 (0.00 0.62) (0.00 -0.62)
 LINE Documentation 0.15 (0.62 0.00) (-0.62 0.00)
 
 LINE Courtyard 0.15 (-3.98 -3.58) (3.58 -3.58) (3.58 3.58) (-3.98 3.58) (-3.98 -3.58)
-'''
+"""
         self._check_drawing(
             ipc.in_line_pin_device(
                 A, B, LA, LB, T, W, pitch, 2, 2, spec), expected)
 
         LA = ipc.Dimension.from_nominal(5, 0)
         LB = ipc.Dimension.from_nominal(5, 0)
-        expected = '''
+        expected = """
 PAD 1 (-2.25 0.50) (0.65 0.65)
 PAD 2 (-2.25 -0.50) (0.65 0.65)
 PAD 3 (-0.50 -2.25) (0.65 0.65)
@@ -484,7 +487,7 @@ LINE Documentation 0.15 (0.00 0.62) (0.00 -0.62)
 LINE Documentation 0.15 (0.62 0.00) (-0.62 0.00)
 
 LINE Courtyard 0.15 (-2.97 -2.58) (2.58 -2.58) (2.58 2.58) (-2.97 2.58) (-2.97 -2.58)
-'''
+"""
         self._check_drawing(
             ipc.in_line_pin_device(
                 A, B, LA, LB, T, W, pitch, 2, 2, spec), expected)

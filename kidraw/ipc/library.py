@@ -8,7 +8,6 @@ It also provides shorthands for common chip packages, to simplify
 their construction.
 """
 
-import sys
 from kidraw import ipc
 
 Most = ipc.LandPatternSize.Most
@@ -16,32 +15,36 @@ Nominal = ipc.LandPatternSize.Nominal
 Least = ipc.LandPatternSize.Least
 
 _chip_metric_dimensions = {
-    '1005': (ipc.Dimension.from_nominal(1.00, 0.05),
+    "1005": (ipc.Dimension.from_nominal(1.00, 0.05),
              ipc.Dimension.from_nominal(0.50, 0.05),
              ipc.Dimension.from_nominal(0.2, 0.10)),
-    '1608': (ipc.Dimension.from_nominal(1.55, 0.05),
+    "1608": (ipc.Dimension.from_nominal(1.55, 0.05),
              ipc.Dimension.from_nominal(0.85, 0.10),
              ipc.Dimension.from_nominal(0.3, 0.15, 0.20)),
-    '2012': (ipc.Dimension.from_nominal(2.00, 0.10),
+    "2012": (ipc.Dimension.from_nominal(2.00, 0.10),
              ipc.Dimension.from_nominal(1.25, 0.15),
              ipc.Dimension.from_nominal(0.4, 0.1, 0.2)),
-    '3216': (ipc.Dimension.from_nominal(3.20, 0.1, 0.2),
+    "3216": (ipc.Dimension.from_nominal(3.20, 0.1, 0.2),
              ipc.Dimension.from_nominal(1.60, 0.15),
              ipc.Dimension.from_nominal(0.50, 0.25)),
 }
 
+
 def metric(n):
     return _chip_metric_dimensions[n]
 
+
 _chip_imperial_dimensions = {
-    '0402': metric('1005'),
-    '0603': metric('1608'),
-    '0805': metric('2012'),
-    '1206': metric('3216'),
+    "0402": metric("1005"),
+    "0603": metric("1608"),
+    "0805": metric("2012"),
+    "1206": metric("3216"),
 }
+
 
 def imperial(n):
     return _chip_imperial_dimensions[n]
+
 
 def chip(profile, size, polarized=False):
     """Construct a land pattern for chip devices.
@@ -54,6 +57,7 @@ def chip(profile, size, polarized=False):
     return ipc.two_terminal_symmetric_device(
         A, B, A, T, B, ipc.LandPatternSize.chip(profile, A), polarized)
 
+
 def SOIC(profile, A, B, L, T, W, num_pins, pitch=1.27):
     """Construct a land pattern for a SOIC device.
 
@@ -64,14 +68,16 @@ def SOIC(profile, A, B, L, T, W, num_pins, pitch=1.27):
     finer pitch.
     """
     if num_pins % 2 != 0:
-        raise ValueError('num_pins must be even for SOIC devices')
+        raise ValueError("num_pins must be even for SOIC devices")
     return ipc.in_line_pin_device(
         A=A, B=B, LA=L, LB=B, T=T, W=W, pitch=pitch,
-        pins_leftright=int(num_pins/2), pins_updown=0,
+        pins_leftright=int(num_pins / 2), pins_updown=0,
         spec=ipc.LandPatternSize.SOIC(
             profile=profile, A=A, L=L, T=T, pitch=pitch))
 
+
 SOP = SOIC
+
 
 def SOT23(profile, num_pins):
     """Construct a land pattern for a SOT23 device.
@@ -89,7 +95,7 @@ def SOT23(profile, num_pins):
         return ipc.sot23_3(
             A, B, L, T, W, 0.95,
             ipc.LandPatternSize.SOT(profile, A, L, T, 0.95))
-    elif num_pins == 5:
+    if num_pins == 5:
         # Dimensions from JEDEC MO-178-C variant AA
         A = ipc.Dimension.from_nominal(1.6, 0.1)
         B = ipc.Dimension.from_nominal(2.9, 0.1)
@@ -99,7 +105,7 @@ def SOT23(profile, num_pins):
         return ipc.sot23_5(
             A, B, L, T, W, 0.95,
             ipc.LandPatternSize.SOT(profile, A, L, T, 0.95))
-    elif num_pins == 6:
+    if num_pins == 6:
         # Dimensions from JEDEC MO-178-C variant AB
         A = ipc.Dimension.from_nominal(1.6, 0.1)
         B = ipc.Dimension.from_nominal(2.9, 0.1)
@@ -109,7 +115,7 @@ def SOT23(profile, num_pins):
         return ipc.in_line_pin_device(
             A, B, L, B, T, W, 0.95, 3, 0,
             ipc.LandPatternSize.SOT(profile, A, L, T, 0.95))
-    elif num_pins == 8:
+    if num_pins == 8:
         # Dimensions from JEDEC MO-178-C variant BA
         A = ipc.Dimension.from_nominal(1.6, 0.1)
         B = ipc.Dimension.from_nominal(2.9, 0.1)
@@ -123,8 +129,8 @@ def SOT23(profile, num_pins):
         spec = ipc.LandPatternSize.SOT(profile, A, L, T, 0.6)
         return ipc.in_line_pin_device(
             A, B, L, B, T, W, 0.65, 4, 0, spec)
-    else:
-        raise ValueError("No known standard dimensions for SOT23-{0}".format(num_pins))
+    raise ValueError(f"No known standard dimensions for SOT23-{num_pins}")
+
 
 def SC70(profile, num_pins):
     """Construct a land pattern for an SC70 device.
@@ -142,20 +148,19 @@ def SC70(profile, num_pins):
         return ipc.sot23_5(
             A, B, L, T, W, 0.65,
             ipc.LandPatternSize.SOT(profile, A, L, T, 0.65))
-    elif num_pins == 6:
+    if num_pins == 6:
         # MO-203-C variant AB
         return ipc.in_line_pin_device(
             A, B, L, B, T, W, 0.65, 3, 0,
             ipc.LandPatternSize.SOT(profile, A, L, T, 0.65))
-    elif num_pins == 8:
+    if num_pins == 8:
         # MO-203-C variant BA
         W = ipc.Dimension(0.15, 0.27)
         spec = ipc.LandPatternSize.SOT(profile, A, L, T, 0.5)
         return ipc.in_line_pin_device(
             A, B, L, B, T, W, 0.5, 4, 0, spec)
-    else:
-        raise ValueError("No known standard dimensions for SOT23-{0}".format(num_pins))
-    
+    raise ValueError(f"No known standard dimensions for SOT23-{num_pins}")
+
 
 def QFP(profile, A, L, T, W, pitch, num_pins):
     """Construct a land pattern for a QFP device.
@@ -165,10 +170,11 @@ def QFP(profile, A, L, T, W, pitch, num_pins):
     level primitives to construct it.
     """
     if num_pins % 4 != 0:
-        raise ValueError('num_pins must be a multiple of 4 for QFP devices')
+        raise ValueError("num_pins must be a multiple of 4 for QFP devices")
     return ipc.in_line_pin_device(
-        A, A, L, L, T, W, pitch, int(num_pins/4), int(num_pins/4),
+        A, A, L, L, T, W, pitch, int(num_pins / 4), int(num_pins / 4),
         ipc.LandPatternSize.QFP(profile, A, L, T, pitch))
+
 
 def QFN(profile, A, T, W, pitch, num_pins):
     """Construct a land pattern for a QFN device.
@@ -179,7 +185,7 @@ def QFN(profile, A, T, W, pitch, num_pins):
     construct it.
     """
     if num_pins % 4 != 0:
-        raise ValueError('num_pins must be a multiple of 4 for QFP devices')
+        raise ValueError("num_pins must be a multiple of 4 for QFP devices")
     return ipc.in_line_pin_device(
-        A, A, A, A, T, W, pitch, num_pins/4, num_pins/4,
+        A, A, A, A, T, W, pitch, num_pins / 4, num_pins / 4,
         ipc.LandPatternSize.QFN(profile))

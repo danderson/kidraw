@@ -13,6 +13,8 @@
         python3
         poetry
         ruff
+        devpod
+        devpod-desktop
       ];
     };
   };

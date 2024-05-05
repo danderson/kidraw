@@ -27,6 +27,20 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-#lint.select = ["ALL"]
+lint.select = ["ALL"]
+lint.ignore = [
+    "E501", "D", "ANN101", "ANN401", "RUF012", "S105", "ANN204", "T201",
+    "T203", "FBT001", "FBT002", "TD002", "TD003", "FIX002",
+    "COM812", "ISC001",
+    "PLR0911",  # Too many return statements
+    "G004",  # Logging statement uses f-string
+    "TRY003", "EM101", "EM102",  # Exception messages outside call
+    "CPY001", # Copyright stuff
+    "PLC0415", # Imports not at top
+    "FURB113", # Repeated append
+]
 lint.preview = true
 format.preview = true
+
+[tool.ruff.lint.flake8-annotations]
+mypy-init-return = true

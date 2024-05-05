@@ -12,6 +12,7 @@
       buildInputs = [
         python3
         poetry
+        ruff
       ];
     };
   };

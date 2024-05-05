@@ -5,11 +5,28 @@ description = "Kidraw is a library to programmatically build Kicad schematic and
 authors = ["David Anderson <dave@natulte.net>"]
 license = "AGPL-3.0-or-later"
 readme = "README.md"
+repository = "https://github.com/danderson/kidraw"
+keywords = ["electronics", "kicad", "schematic", "footprint", "pcb"]
+classifiers = [
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8"
+ruff = "^0"
+mypy = "^1"
+pre-commit = "^3"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+lint.select = ["ALL"]
+lint.preview = true
+format.preview = true

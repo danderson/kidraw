@@ -6,9 +6,9 @@ from kidraw import schematic as sch
 from kidraw.footprint import library as flib
 from kidraw.schematic import library as slib
 
-l = kidraw.Library("example")
+lib = kidraw.Library("example")
 
-l.devices = [
+lib.devices = [
     kidraw.Device(slib.vcc("+5V")),
     kidraw.Device(slib.vcc("+12V")),
     kidraw.Device(slib.gnd()),
@@ -69,7 +69,7 @@ with sch.ICBuilder(s, 32, pin_len=300) as ic:
         ic.pin(numbers=12 + i, name=f"PWM3_{i + 1}", type=sch.Pin.Bidirectional)
     for i in range(3):
         ic.pin(numbers=18 + i, name=f"PWM3_{i + 1}", type=sch.Pin.Bidirectional)
-l.devices.append(
+lib.devices.append(
     kidraw.Device(
         schematic=s,
         footprints=[
@@ -91,6 +91,6 @@ with sch.ICBuilder(s, 3, slot_spacing=50) as ic:
     ic.pin(1, name="GND", type=sch.Pin.Power)
     ic.side(sch.Pin.Right)
     ic.pin(2, name="Vout", type=sch.Pin.Power)
-l.devices.append(kidraw.Device(schematic=s, footprints=[flib.SOT23(3)]))
+lib.devices.append(kidraw.Device(schematic=s, footprints=[flib.SOT23(3)]))
 
-l.save()
+lib.save()

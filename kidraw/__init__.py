@@ -2,8 +2,7 @@ import os
 import os.path
 import shutil
 
-from kidraw import footprint, ipc, schematic
-
+__all__ = ["footprint", "ipc", "schematic"]
 
 class Library:
     def __init__(self, name):

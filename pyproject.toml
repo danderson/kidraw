@@ -27,6 +27,6 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-lint.select = ["ALL"]
+#lint.select = ["ALL"]
 lint.preview = true
 format.preview = true

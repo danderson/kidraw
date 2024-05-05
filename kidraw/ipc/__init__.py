@@ -5,7 +5,6 @@ so that the output of the math can be reused by other projects if
 desired.
 """
 import math
-from collections import namedtuple
 from enum import Enum
 
 PenWidth = 0.15

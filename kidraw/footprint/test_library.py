@@ -55,7 +55,7 @@ class TestLibrary(unittest.TestCase):
         self._check_fp("SOT23-6", lib.SOT23(6))
         self._check_fp("SOT23-8", lib.SOT23(8))
 
-    def testSOT23(self):
+    def testSC70(self):
         self._check_fp("SC70-5", lib.SC70(5))
         self._check_fp("SC70-6", lib.SC70(6))
         self._check_fp("SC70-8", lib.SC70(8))

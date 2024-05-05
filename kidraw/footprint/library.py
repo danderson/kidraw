@@ -2,9 +2,11 @@ from kidraw import footprint as fp
 from kidraw import ipc
 from kidraw.ipc import library as lib
 
-metric = lambda s: ("metric", s, lib.metric(s))
-imperial = lambda s: ("imperial", s, lib.imperial(s))
+def metric(s):
+    return ("metric", s, lib.metric(s))
 
+def imperial(s):
+    return ("imperial", s, lib.imperial(s))
 
 def test_point(size):
     f = fp.Footprint(name=f"Test Point {size}mm")

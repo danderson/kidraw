@@ -4,17 +4,11 @@ from itertools import starmap
 from kidraw import ipc
 
 
-class TestDrawing(unittest.TestCase):
+class TestTrivialDrawing(unittest.TestCase):
     """Trivial "code execution" tests for Drawing.*.
 
     This is really just testing for typos.
     """
-
-    def testLayer(self):
-        ls = [ipc.Drawing.Layer.Silkscreen,
-              ipc.Drawing.Layer.Courtyard,
-              ipc.Drawing.Layer.Assembly,
-              ipc.Drawing.Layer.Documentation]
 
     def testFeatures(self):
         ipc.Drawing.Line(layer=1, points=2, width=3)

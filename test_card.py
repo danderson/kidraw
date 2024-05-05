@@ -30,13 +30,13 @@ class Node:
                 yield r
 
     def find_node(self, w, h):
-        if self.drawing != None:
-            d = self.down.find_node(w, h) if self.down != None else None
-            r = self.right.find_node(w, h) if self.right != None else None
+        if self.drawing is not None:
+            d = self.down.find_node(w, h) if self.down is not None else None
+            r = self.right.find_node(w, h) if self.right is not None else None
             return r or d
         if w > self.w:
             return None
-        if self.h != None and h > self.h:
+        if self.h is not None and h > self.h:
             return None
         return self
 
@@ -45,7 +45,7 @@ class Node:
         self.down = Node(self.x,
                          self.y + h,
                          self.w,
-                         self.h - h if self.h != None else None)
+                         self.h - h if self.h is not None else None)
         self.right = Node(self.x + w,
                           self.y,
                           self.w - w,
@@ -84,7 +84,7 @@ def drawing(f):
         try:
             return f(*args, **kwargs)
         except ipc.InfeasibleFootprint as e:
-            print >> sys.stderr, e
+            print(e, file=sys.stderr)
             r = ipc.Drawing()
             r.features += [
                 ipc.Drawing.Line(
@@ -254,25 +254,25 @@ PROFILE = {
 }
 
 fps = []
-for p, l in PROFILE.items():
+for p, letter in PROFILE.items():
     fps.extend([
-        ("32-TQFP-" + l, tqfp(p)),
-        ("24-QFN-" + l, qfn(p)),
-        ("20-PQFN-" + l, pqfn(p)),
-        ("8-DFN-" + l, dfn(p)),
-        ("8-SOIC-" + l, soic(p)),
-        ("16-SSOP-" + l, ssop(p)),
-        ("8-SC70-" + l, sc70(p)),
-        ("12-TSOPJ-" + l, tsopj(p)),
+        ("32-TQFP-" + letter, tqfp(p)),
+        ("24-QFN-" + letter, qfn(p)),
+        ("20-PQFN-" + letter, pqfn(p)),
+        ("8-DFN-" + letter, dfn(p)),
+        ("8-SOIC-" + letter, soic(p)),
+        ("16-SSOP-" + letter, ssop(p)),
+        ("8-SC70-" + letter, sc70(p)),
+        ("12-TSOPJ-" + letter, tsopj(p)),
     ])
     for polarized in (True, False):
         pol = "P" if polarized else ""
         for s in ("0402", "0603", "0805", "1206"):
-            fps.append((f"{s}-{pol}-{l}",
+            fps.append((f"{s}-{pol}-{letter}",
                         lib.chip(p, lib.imperial(s), polarized)))
-        fps.append(("SOD-%s-%s" % (pol, l), SOD(p, polarized)))
-        fps.append(("Molded-%s-%s" % (pol, l), Molded(p, polarized)))
-        fps.append(("MELF-%s-%s" % (pol, l), MELF(p, polarized)))
+        fps.append(("SOD-%s-%s" % (pol, letter), SOD(p, polarized)))
+        fps.append(("Molded-%s-%s" % (pol, letter), Molded(p, polarized)))
+        fps.append(("MELF-%s-%s" % (pol, letter), MELF(p, polarized)))
     for s in (3, 5, 6, 8):
         fps.append((f"SOT23-{s}", lib.SOT23(p, s)))
 

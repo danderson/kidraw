@@ -1,5 +1,4 @@
-Kidraw
-======
+# Kidraw
 
 Kidraw is a library to programmatically build Kicad schematic and
 footprint libraries. It was created out of frustration with Kicad's

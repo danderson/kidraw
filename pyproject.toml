@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "kidraw"
+version = "0.1.0"
+description = "Kidraw is a library to programmatically build Kicad schematic and footprint libraries."
+authors = ["David Anderson <dave@natulte.net>"]
+license = "AGPL-3.0-or-later"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
